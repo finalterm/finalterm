@@ -26,8 +26,8 @@ public class CharacterAttributes : Object {
 	// TODO: Can these be private?
 	public int foreground_color { get; set; }
 	public int background_color { get; set; }
-	public Clutter.Color rgb_foreground_color { get; set; }
-	public Clutter.Color rgb_background_color { get; set; }
+	public Gdk.RGBA rgb_foreground_color { get; set; }
+	public Gdk.RGBA rgb_background_color { get; set; }
 	public bool use_rgb_foreground_color { get; set; }
 	public bool use_rgb_background_color { get; set; }
 	public bool bold { get; set; }
@@ -58,8 +58,8 @@ public class CharacterAttributes : Object {
 		// Default attributes
 		foreground_color = -1;
 		background_color = -1;
-		rgb_foreground_color = Clutter.Color();
-		rgb_background_color = Clutter.Color();
+		rgb_foreground_color = Gdk.RGBA();
+		rgb_background_color = Gdk.RGBA();
 		use_rgb_foreground_color = false;
 		use_rgb_background_color = false;
 		bold = false;
@@ -298,13 +298,15 @@ public class CharacterAttributes : Object {
 
 		if (invisible) {
 			// TODO: A vala/bindings bug prevents static colors from being used (GCC error)
-			text_attributes.foreground_color = Clutter.Color.from_string("#00000000");
-			text_attributes.background_color = Clutter.Color.from_string("#00000000");
-			//text_attributes.foreground_color = Clutter.Color.get_static(Clutter.StaticColor.TRANSPARENT);
-			//text_attributes.background_color = Clutter.Color.get_static(Clutter.StaticColor.TRANSPARENT);
+			text_attributes.foreground_color = Gdk.RGBA ();
+			text_attributes.foreground_color.parse("#00000000");
+			text_attributes.background_color = Gdk.RGBA ();
+			text_attributes.background_color.parse("#00000000");
+			//text_attributes.foreground_color = Gdk.RGBA.get_static(Clutter.StaticColor.TRANSPARENT);
+			//text_attributes.background_color = Gdk.RGBA.get_static(Clutter.StaticColor.TRANSPARENT);
 
 		} else {
-			Clutter.Color color1;
+			Gdk.RGBA color1;
 			if (use_rgb_foreground_color) {
 				color1 = rgb_foreground_color;
 			} else {
@@ -315,7 +317,7 @@ public class CharacterAttributes : Object {
 				}
 			}
 
-			Clutter.Color color2;
+			Gdk.RGBA color2;
 			if (use_rgb_background_color) {
 				color2 = rgb_background_color;
 			} else {
@@ -350,8 +352,8 @@ public class CharacterAttributes : Object {
 
 public class TextAttributes : Object {
 
-	public Clutter.Color foreground_color { get; set; }
-	public Clutter.Color background_color { get; set; }
+	public Gdk.RGBA foreground_color { get; set; }
+	public Gdk.RGBA background_color { get; set; }
 	public bool bold { get; set; }
 	public bool underlined { get; set; }
 

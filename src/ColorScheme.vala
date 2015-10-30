@@ -25,26 +25,26 @@ public class ColorScheme : Object {
 	public string name { get; set; }
 	public string author { get; set; }
 
-	private Clutter.Color dark_cursor_color;
-	private Clutter.Color light_cursor_color;
-	private Clutter.Color dark_foreground_color;
-	private Clutter.Color light_foreground_color;
-	private Clutter.Color dark_background_color;
-	private Clutter.Color light_background_color;
-	private Gee.Map<int, Clutter.Color?> dark_indexed_colors;
-	private Gee.Map<int, Clutter.Color?> light_indexed_colors;
+	private Gdk.RGBA dark_cursor_color = Gdk.RGBA();
+	private Gdk.RGBA light_cursor_color = Gdk.RGBA();
+	private Gdk.RGBA dark_foreground_color = Gdk.RGBA();
+	private Gdk.RGBA light_foreground_color = Gdk.RGBA();
+	private Gdk.RGBA dark_background_color = Gdk.RGBA();
+	private Gdk.RGBA light_background_color = Gdk.RGBA();
+	private Gee.Map<int, Gdk.RGBA?> dark_indexed_colors = new Gee.HashMap<int, Gdk.RGBA?> ();
+	private Gee.Map<int, Gdk.RGBA?> light_indexed_colors = new Gee.HashMap<int, Gdk.RGBA?> ();
 
 	public ColorScheme.load_from_file(string filename) {
 		// Set default color values
-		dark_cursor_color      = Clutter.Color.from_string("#ffffff");
-		light_cursor_color     = Clutter.Color.from_string("#000000");
-		dark_foreground_color  = Clutter.Color.from_string("#ffffff");
-		light_foreground_color = Clutter.Color.from_string("#000000");
-		dark_background_color  = Clutter.Color.from_string("#000000");
-		light_background_color = Clutter.Color.from_string("#ffffff");
+		dark_cursor_color.parse("#ffffff");
+		light_cursor_color.parse("#000000");
+		dark_foreground_color.parse("#ffffff");
+		light_foreground_color.parse("#000000");
+		dark_background_color.parse("#000000");
+		light_background_color.parse("#ffffff");
 
-		dark_indexed_colors  = new Gee.HashMap<int, Clutter.Color?>();
-		light_indexed_colors = new Gee.HashMap<int, Clutter.Color?>();
+		dark_indexed_colors  = new Gee.HashMap<int, Gdk.RGBA?>();
+		light_indexed_colors = new Gee.HashMap<int, Gdk.RGBA?>();
 
 		// Logic taken from https://github.com/trapd00r/Convert-Color-XTerm
 
@@ -79,7 +79,8 @@ public class ColorScheme : Object {
 			author = colors_file.get_string("About", "author");
 
 			foreach (var key in colors_file.get_keys("Dark")) {
-				var color = Clutter.Color.from_string(colors_file.get_string("Dark", key));
+				var color = Gdk.RGBA ();
+				color.parse(colors_file.get_string("Dark", key));
 				switch (key) {
 				case "cursor":
 					dark_cursor_color = color;
@@ -97,7 +98,8 @@ public class ColorScheme : Object {
 			}
 
 			foreach (var key in colors_file.get_keys("Light")) {
-				var color = Clutter.Color.from_string(colors_file.get_string("Light", key));
+				var color = Gdk.RGBA ();
+				color.parse(colors_file.get_string("Dark", key));
 				switch (key) {
 				case "cursor":
 					light_cursor_color = color;
@@ -116,24 +118,26 @@ public class ColorScheme : Object {
 		} catch (Error e) { warning(_("Error in color scheme %s: %s"), filename, e.message); }
 	}
 
-	public Clutter.Color get_cursor_color(bool dark) {
+	public Gdk.RGBA get_cursor_color(bool dark) {
 		return (dark ? dark_cursor_color : light_cursor_color);
 	}
 
-	public Clutter.Color get_foreground_color(bool dark) {
+	public Gdk.RGBA get_foreground_color(bool dark) {
 		return (dark ? dark_foreground_color : light_foreground_color);
 	}
 
-	public Clutter.Color get_background_color(bool dark) {
+	public Gdk.RGBA get_background_color(bool dark) {
 		return (dark ? dark_background_color : light_background_color);
 	}
 
-	public Clutter.Color get_indexed_color(int index, bool dark) {
+	public Gdk.RGBA get_indexed_color(int index, bool dark) {
 		if (dark ? dark_indexed_colors.has_key(index) : light_indexed_colors.has_key(index)) {
 			return (dark ? dark_indexed_colors.get(index) : light_indexed_colors.get(index));
 		} else {
 			critical(_("Invalid color index: %i"), index);
-			return Clutter.Color.from_string("#00000000");
+			var color = Gdk.RGBA ();
+			color.parse ("#00000000");
+			return color;
 		}
 	}
 

@@ -28,7 +28,7 @@ public class Terminal : Object {
 
 	public TerminalStream terminal_stream { get; set; default = new TerminalStream(); }
 	public TerminalOutput terminal_output { get; set; }
-	public TerminalView terminal_view { get; set; }
+	// public TerminalView terminal_view { get; set; }
 
 	private Posix.pid_t fork_pid;
 	private int command_file;
@@ -54,7 +54,7 @@ public class Terminal : Object {
 		terminal_output.command_finished.connect(on_output_command_finished);
 #endif
 		terminal_output.progress_updated.connect(on_output_progress_updated);
-		terminal_output.progress_finished.connect(on_output_progress_finished);
+		// terminal_output.progress_finished.connect(on_output_progress_finished);
 		terminal_output.cursor_position_changed.connect(on_output_cursor_position_changed);
 
 		initialize_pty();
@@ -64,13 +64,13 @@ public class Terminal : Object {
 	}
 
 	public void update_autocompletion_position() {
-		int x;
-		int y;
-		terminal_view.terminal_output_view.get_screen_position(
-				terminal_output.command_start_position, out x, out y);
-		// Move popup one character down so it doesn't occlude the input
-		y += Settings.get_default().character_height;
-		FinalTerm.autocompletion.move_popup(x, y);
+		// int x;
+		// int y;
+		// terminal_view.terminal_output_view.get_screen_position(
+		// 		terminal_output.command_start_position, out x, out y);
+		// // Move popup one character down so it doesn't occlude the input
+		// y += Settings.get_default().character_height;
+		// FinalTerm.autocompletion.move_popup(x, y);
 	}
 
 	public void clear_command() {
@@ -100,82 +100,82 @@ public class Terminal : Object {
 	}
 
 	private void on_output_line_added() {
-		terminal_view.terminal_output_view.add_line_views();
+		// terminal_view.terminal_output_view.add_line_views();
 
-		// Schedule autoscroll with low priority to ensure it is performed
-		// only after all layout changes triggered by adding the new line
-		// are complete
-		// TODO: Add information about instance to key
-		Utilities.schedule_execution(() => {
-			terminal_view.terminal_output_view.scroll_to_position();
-		}, "scroll_to_position", 0, Priority.DEFAULT_IDLE);
+		// // Schedule autoscroll with low priority to ensure it is performed
+		// // only after all layout changes triggered by adding the new line
+		// // are complete
+		// // TODO: Add information about instance to key
+		// Utilities.schedule_execution(() => {
+		// 	terminal_view.terminal_output_view.scroll_to_position();
+		// }, "scroll_to_position", 0, Priority.DEFAULT_IDLE);
 	}
 
 	private void on_output_line_updated(int line_index) {
-		terminal_view.terminal_output_view.mark_line_as_updated(line_index);
+		// terminal_view.terminal_output_view.mark_line_as_updated(line_index);
 
-		// TODO: Add information about instance to key
-		Utilities.schedule_execution(terminal_view.terminal_output_view.render_terminal_output,
-				"render_terminal_output", Settings.get_default().render_interval);
+		// // TODO: Add information about instance to key
+		// Utilities.schedule_execution(terminal_view.terminal_output_view.render_terminal_output,
+		// 		"render_terminal_output", Settings.get_default().render_interval);
 	}
 
 	private void on_output_command_updated(string command) {
-		message(_("Command updated: '%s'"), command);
+		// message(_("Command updated: '%s'"), command);
 
-		var stripped_command = command.strip();
-		if (stripped_command == "") {
-			FinalTerm.autocompletion.hide_popup();
-		} else {
-			// TODO: This should be scheduled to avoid congestion
-			FinalTerm.autocompletion.show_popup(stripped_command);
-			update_autocompletion_position();
-		}
+		// var stripped_command = command.strip();
+		// if (stripped_command == "") {
+		// 	FinalTerm.autocompletion.hide_popup();
+		// } else {
+		// 	// TODO: This should be scheduled to avoid congestion
+		// 	FinalTerm.autocompletion.show_popup(stripped_command);
+		// 	update_autocompletion_position();
+		// }
 	}
 
 	private void on_output_command_executed(string command) {
-		message(_("Command executed: '%s'"), command);
-		FinalTerm.autocompletion.hide_popup();
+		// message(_("Command executed: '%s'"), command);
+		// FinalTerm.autocompletion.hide_popup();
 
-		var stripped_command = command.strip();
-		if (stripped_command != "")
-			FinalTerm.autocompletion.add_command(stripped_command);
+		// var stripped_command = command.strip();
+		// if (stripped_command != "")
+		// 	FinalTerm.autocompletion.add_command(stripped_command);
 	}
 
 	private void on_output_progress_updated(int percentage, string operation) {
-#if HAS_UNITY
-		FinalTerm.launcher.progress_visible = true;
-		FinalTerm.launcher.progress = percentage / 100.0;
-#endif
+// #if HAS_UNITY
+// 		FinalTerm.launcher.progress_visible = true;
+// 		FinalTerm.launcher.progress = percentage / 100.0;
+// #endif
 
-		terminal_view.show_progress(percentage, operation);
-	}
+// 		terminal_view.show_progress(percentage, operation);
+// 	}
 
-	private void on_output_progress_finished() {
-#if HAS_UNITY
-		FinalTerm.launcher.progress_visible = false;
-#endif
+// 	private void on_output_progress_finished() {
+// #if HAS_UNITY
+// 		FinalTerm.launcher.progress_visible = false;
+// #endif
 
-		terminal_view.hide_progress();
+// 		terminal_view.hide_progress();
 	}
 
 #if HAS_NOTIFY
 	private void on_output_command_finished(string command, int return_code) {
-		if (terminal_view.window_has_focus())
-			return;
+		// if (terminal_view.window_has_focus())
+		// 	return;
 
-		var message = _("Command finished") + ((return_code == 0) ? "" :
-				" (" + _("return code") + ": " + return_code.to_string() + ")");
-		var notification = new Notify.Notification(message, command, "final-term");
-		try {
-			notification.show();
-		} catch (Error e) { warning(_("Failed to show notification: %s"), e.message); }
+		// var message = _("Command finished") + ((return_code == 0) ? "" :
+		// 		" (" + _("return code") + ": " + return_code.to_string() + ")");
+		// var notification = new Notify.Notification(message, command, "final-term");
+		// try {
+		// 	notification.show();
+		// } catch (Error e) { warning(_("Failed to show notification: %s"), e.message); }
 	}
 #endif
 
 	private void on_output_cursor_position_changed(TerminalOutput.CursorPosition new_position) {
 		// TODO: Add information about instance to key
-		Utilities.schedule_execution(terminal_view.terminal_output_view.render_terminal_output,
-				"render_terminal_output", Settings.get_default().render_interval);
+		// Utilities.schedule_execution(terminal_view.terminal_output_view.render_terminal_output,
+		// 		"render_terminal_output", Settings.get_default().render_interval);
 	}
 
 	public void send_text(string text) {
@@ -292,8 +292,8 @@ public class Terminal : Object {
 
 	private void on_settings_changed(string? key) {
 		// TODO: This breaks if multiple terminal widgets are used
-		if (FinalTerm.autocompletion.is_popup_visible())
-			update_autocompletion_position();
+		// if (FinalTerm.autocompletion.is_popup_visible())
+		// 	update_autocompletion_position();
 	}
 
 	public signal void shell_terminated();

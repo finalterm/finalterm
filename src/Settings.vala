@@ -49,13 +49,13 @@ public class Settings : Object {
 		get { return _color_scheme; }
 	}
 
-	private Clutter.Color _foreground_color;
-	public Clutter.Color foreground_color {
+	private Gdk.RGBA _foreground_color;
+	public Gdk.RGBA foreground_color {
 		get { return _foreground_color; }
 	}
 
-	private Clutter.Color _background_color;
-	public Clutter.Color background_color {
+	private Gdk.RGBA _background_color;
+	public Gdk.RGBA background_color {
 		get { return _background_color; }
 	}
 
@@ -65,10 +65,10 @@ public class Settings : Object {
 		set { settings.set_string("theme", value); }
 	}
 
-	private Theme _theme;
-	public Theme theme {
-		get { return _theme; }
-	}
+	// private Theme _theme;
+	// public Theme theme {
+	// 	get { return _theme; }
+	// }
 
 	private string _terminal_font_name;
 	public string terminal_font_name {
@@ -155,7 +155,7 @@ public class Settings : Object {
 		_background_color = color_scheme.get_background_color(dark);
 
 		_theme_name = settings.get_string("theme");
-		_theme = FinalTerm.themes.get(theme_name);
+		// _theme = FinalTerm.themes.get(theme_name);
 
 		_terminal_font_name = settings.get_string("terminal-font");
 		_terminal_font = Pango.FontDescription.from_string(terminal_font_name);
