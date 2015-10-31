@@ -20,7 +20,7 @@
  * along with Final Term.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-public class NestingContainer : Gtk.Box, NestingContainerChild {
+public class NestingContainer : Gtk.Bin, NestingContainerChild {
 
 	// This property is maintained under the contract
 	// "is_active = has_active_descendant"
@@ -57,16 +57,16 @@ public class NestingContainer : Gtk.Box, NestingContainerChild {
 
 	private NestingContainer.with_child(ChildFactoryFunction child_factory_function,
 				NestingContainerChild child) {
+
 		this.child_factory_function = child_factory_function;
 
 		children = new Gee.ArrayList<NestingContainerChild>();
 		children.add(child);
 
-		if (child.parent == null) {
+		if (child.parent == null)
 			add(child);
-		} else {
+		else
 			child.reparent(this);
-		}
 
 		container_state = ContainerState.CHILD;
 
@@ -89,11 +89,11 @@ public class NestingContainer : Gtk.Box, NestingContainerChild {
 
 		var child_container_1 = new NestingContainer.with_child(child_factory_function, current_child);
 		children.add(child_container_1);
-		paned.pack1(child_container_1, true, true);
+		paned.pack1(child_container_1, false, false);
 
 		var child_container_2 = new NestingContainer(child_factory_function);
 		children.add(child_container_2);
-		paned.pack2(child_container_2, true, true);
+		paned.pack2(child_container_2, false, false);
 
 		// Explicitly set divider position to avoid pane collapsing
 		// when a notebook widget is added to the other pane
@@ -102,7 +102,7 @@ public class NestingContainer : Gtk.Box, NestingContainerChild {
 		paned.position = (orientation == Gtk.Orientation.HORIZONTAL) ?
 				allocation.width / 2 : allocation.height / 2;
 
-		pack_start(paned);
+		add(paned);
 
 		container_state = ContainerState.SPLIT;
 
@@ -126,12 +126,13 @@ public class NestingContainer : Gtk.Box, NestingContainerChild {
 
 			var current_child = children.get(0);
 			children.clear();
+			remove(current_child);
 
 			notebook = new Gtk.Notebook();
 			// Identifier for drag and drop compatibility
 			notebook.group_name = "NestingContainer";
 
-			pack_start(notebook);
+			add(notebook);
 
 			container_state = ContainerState.TABBED;
 
@@ -376,7 +377,7 @@ public class NestingContainer : Gtk.Box, NestingContainerChild {
 			spacing = 5;
 
 			label = new Gtk.Label(text);
-			pack_start(label);
+			add(label);
 
 			close_button = new Gtk.Button();
 			close_button.relief = Gtk.ReliefStyle.NONE;

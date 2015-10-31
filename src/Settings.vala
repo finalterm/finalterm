@@ -65,10 +65,10 @@ public class Settings : Object {
 		set { settings.set_string("theme", value); }
 	}
 
-	// private Theme _theme;
-	// public Theme theme {
-	// 	get { return _theme; }
-	// }
+	private Theme _theme;
+	public Theme theme {
+		get { return _theme; }
+	}
 
 	private string _terminal_font_name;
 	public string terminal_font_name {
@@ -155,7 +155,7 @@ public class Settings : Object {
 		_background_color = color_scheme.get_background_color(dark);
 
 		_theme_name = settings.get_string("theme");
-		// _theme = FinalTerm.themes.get(theme_name);
+		_theme = FinalTerm.themes.get(theme_name);
 
 		_terminal_font_name = settings.get_string("terminal-font");
 		_terminal_font = Pango.FontDescription.from_string(terminal_font_name);
@@ -186,12 +186,77 @@ public class Settings : Object {
 		instance.settings = new GLib.Settings(schema_name);
 
 		instance.update_cache();
+		instance.update_css ();
 
 		instance.settings.changed.connect((key) => {
 			instance.update_cache();
+			instance.update_css ();
 			instance.changed(key);
 		});
 	}
+
+	Gtk.CssProvider style;
+	public void update_css ()
+	{
+		if (style != null)
+			Gtk.StyleContext.remove_provider_for_screen(Gdk.Screen.get_default(), style);
+
+		style = new Gtk.CssProvider();
+
+		var color = Gdk.RGBA ();
+		color.red = foreground_color.red;
+		color.green = foreground_color.green;
+		color.blue = foreground_color.blue;
+		color.alpha = theme.cursor_maximum_opacity;
+		var from = color.to_string ();
+		color.alpha = theme.cursor_minimum_opacity;
+		var to = color.to_string ();
+
+		color.red = background_color.red;
+		color.green = background_color.green;
+		color.blue = background_color.blue;
+		color.alpha = opacity;
+		
+		var background_color = color.to_string ();
+
+		var css = @"
+.cursor {
+	background-color: $from;
+	animation-name: blink;
+	animation-duration: $(theme.cursor_blinking_interval)ms;
+	animation-direction: alternate;
+	animation-iteration-count: infinite;
+	animation-timing-function: ease-in;
+}
+
+@keyframes blink {
+	from { background-color: $from; }
+	to { background-color: $to; }
+}
+
+TerminalWidget
+{
+	background-color: $background_color
+}
+
+LineView {
+	color: $(foreground_color.to_string ());
+	font: $terminal_font_name;
+}
+
+LineView .button {
+	margin-top: $(theme.collapse_button_y)px;
+	margin-left: $(theme.collapse_button_x)px;
+}
+
+LineView .label {
+	margin-right: $(theme.margin_right)px;
+}
+";
+		style.load_from_data (css, css.length);
+Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),
+			style, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
+}
 
 	public static Settings get_default() {
 		if (instance == null)

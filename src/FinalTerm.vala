@@ -28,7 +28,7 @@ public class FinalTerm : Gtk.Application {
 	public static Gee.Map<Regex, TextMenu> text_menus_by_pattern { get; set; }
 
 	public static Gee.Map<string, ColorScheme> color_schemes;
-	// public static Gee.Map<string, Theme> themes;
+	public static Gee.Map<string, Theme> themes;
 
 	// public static Autocompletion autocompletion { get; set; }
 
@@ -36,7 +36,7 @@ public class FinalTerm : Gtk.Application {
 	private Gtk.IMContext im_context;
 	private bool preedit_active = false;
 
-	// private TerminalWidget active_terminal_widget = null;
+	private TerminalWidget active_terminal_widget = null;
 
 #if HAS_UNITY
 	public static Unity.LauncherEntry launcher;
@@ -92,11 +92,12 @@ public class FinalTerm : Gtk.Application {
 			color_schemes.set(color_scheme.name, color_scheme);
 		}
 
-		// themes = new Gee.HashMap<string, Theme>();
+		themes = new Gee.HashMap<string, Theme>();
 		// foreach (var filename in Utilities.get_files_in_directory(Config.PKGDATADIR + "/Themes", ".fttheme", true)) {
-		// 	var theme = new Theme.load_from_file(filename);
-		// 	themes.set(theme.name, theme);
-		// }
+		foreach (var filename in Utilities.get_files_in_directory("/home/timothy/Projects/Vala/finalterm-reborn/data/Themes", ".fttheme", true)) {
+			var theme = new Theme.load_from_file(filename);
+			themes.set(theme.name, theme);
+		}
 
 		foreach (var filename in Utilities.get_files_in_directory(Config.PKGDATADIR + "/KeyBindings", ".ftkeys")) {
 			KeyBindings.load_from_file(filename);
@@ -131,36 +132,36 @@ public class FinalTerm : Gtk.Application {
 		main_window.has_resize_grip = true;
 		// Enable background transparency
 		main_window.app_paintable = true;
-		// main_window.set_visual(main_window.screen.get_rgba_visual());
+		main_window.set_visual(main_window.screen.get_rgba_visual());
 
-		// var nesting_container = new NestingContainer(() => {
-		// 	var terminal_widget = new TerminalWidget();
+		var nesting_container = new NestingContainer(() => {
+			var terminal_widget = new TerminalWidget();
 
-		// 	if (active_terminal_widget == null) {
-		// 		terminal_widget.is_active = true;
-		// 		active_terminal_widget = terminal_widget;
-		// 	} else {
-		// 		terminal_widget.is_active = false;
-		// 	}
+			if (active_terminal_widget == null) {
+				terminal_widget.is_active = true;
+				active_terminal_widget = terminal_widget;
+			} else {
+				terminal_widget.is_active = false;
+			}
 
-		// 	terminal_widget.notify["is-active"].connect(() => {
-		// 		if (terminal_widget.is_active)
-		// 			active_terminal_widget = terminal_widget;
-		// 	});
+			terminal_widget.notify["is-active"].connect(() => {
+				if (terminal_widget.is_active)
+					active_terminal_widget = terminal_widget;
+			});
 
-		// 	return terminal_widget;
-		// });
+			return terminal_widget;
+		});
 
-		// main_window.title = nesting_container.title;
-		// nesting_container.notify["title"].connect(() => {
-		// 	main_window.title = nesting_container.title;
-		// });
+		main_window.title = nesting_container.title;
+		nesting_container.notify["title"].connect(() => {
+			main_window.title = nesting_container.title;
+		});
 
-		// nesting_container.close.connect(() => {
-		// 	quit();
-		// });
+		nesting_container.close.connect(() => {
+			quit();
+		});
 
-		// main_window.add(nesting_container);
+		main_window.add(nesting_container);
 
 		im_context = new Gtk.IMMulticontext();
 		im_context.commit.connect(on_commit);
@@ -198,11 +199,11 @@ public class FinalTerm : Gtk.Application {
 	}
 
 	private void settings_action() {
-		// var settings_window = new SettingsWindow();
-		// settings_window.transient_for = main_window;
-		// settings_window.show_all();
-		// settings_window.run();
-		// settings_window.destroy();
+		var settings_window = new SettingsWindow();
+		settings_window.transient_for = main_window;
+		settings_window.show_all();
+		settings_window.run();
+		settings_window.destroy();
 	}
 
 	private void about_action() {
@@ -251,7 +252,7 @@ public class FinalTerm : Gtk.Application {
 	}
 
 	private bool on_key_press_event(Gdk.EventKey event) {
-		//message(_("Application key: %s (%s)"), Gdk.keyval_name(event.keyval), event.str);
+		// message(_("Application key: %s (%s)"), Gdk.keyval_name(event.keyval), event.str);
 
 		// Handle non-configurable keys (for command completion)
 		// if (autocompletion.is_popup_visible()) {
@@ -267,7 +268,7 @@ public class FinalTerm : Gtk.Application {
 		// 		autocompletion.select_next_command();
 		// 		return true;
 
-		// 	} else if (event.keyval == Gdk.Key.Right &&
+		// 	} elseif (event.keyval == Gdk.Key.Right &&
 		// 			   autocompletion.is_command_selected()) {
 		// 		active_terminal_widget.set_shell_command(autocompletion.get_selected_command());
 		// 		return true;
@@ -283,25 +284,25 @@ public class FinalTerm : Gtk.Application {
 		// 	}
 		// }
 
-		// // Handle user-configured keys only outside of preedit
-		// if (!preedit_active) {
-		// 	var key_commands = KeyBindings.get_key_commands(event.keyval, event.state,
-		// 			active_terminal_widget.get_terminal_modes());
-		// 	if (key_commands != null) {
-		// 		foreach (var command in key_commands) {
-		// 			command.execute();
-		// 		}
-		// 		return true;
-		// 	}
-		// }
+		// Handle user-configured keys only outside of preedit
+		if (!preedit_active) {
+			var key_commands = KeyBindings.get_key_commands(event.keyval, event.state,
+					active_terminal_widget.get_terminal_modes());
+			if (key_commands != null) {
+				foreach (var command in key_commands) {
+					command.execute();
+				}
+				return true;
+			}
+		}
 
-		// if (im_context.filter_keypress(event))
-		// 	return true;
+		if (im_context.filter_keypress(event))
+			return true;
 
-		// if (event.length == 0)
-		// 	return false;
+		if (event.length == 0)
+			return false;
 
-		// active_terminal_widget.send_text_to_shell(event.str);
+		active_terminal_widget.send_text_to_shell(event.str);
 		return true;
 	}
 
@@ -310,7 +311,7 @@ public class FinalTerm : Gtk.Application {
 	}
 
 	private void on_commit(string str) {
-		// active_terminal_widget.send_text_to_shell(str);
+		active_terminal_widget.send_text_to_shell(str);
 	}
 
 	private void on_preedit_start() {
@@ -322,141 +323,141 @@ public class FinalTerm : Gtk.Application {
 	}
 
 	private void execute_command(Command command) {
-		// switch (command.command) {
-		// case Command.CommandType.QUIT_PROGRAM:
-		// 	quit();
-		// 	return;
+		switch (command.command) {
+		case Command.CommandType.QUIT_PROGRAM:
+			quit();
+			return;
 
-		// case Command.CommandType.SEND_TO_SHELL:
-		// 	foreach (var parameter in command.parameters) {
-		// 		active_terminal_widget.send_text_to_shell(parameter);
-		// 	}
-		// 	return;
+		case Command.CommandType.SEND_TO_SHELL:
+			foreach (var parameter in command.parameters) {
+				active_terminal_widget.send_text_to_shell(parameter);
+			}
+			return;
 
-		// case Command.CommandType.CLEAR_SHELL_COMMAND:
-		// 	active_terminal_widget.clear_shell_command();
-		// 	return;
+		case Command.CommandType.CLEAR_SHELL_COMMAND:
+			active_terminal_widget.clear_shell_command();
+			return;
 
-		// case Command.CommandType.SET_SHELL_COMMAND:
-		// 	if (command.parameters.is_empty)
-		// 		return;
-		// 	active_terminal_widget.set_shell_command(command.parameters.get(0));
-		// 	return;
+		case Command.CommandType.SET_SHELL_COMMAND:
+			if (command.parameters.is_empty)
+				return;
+			active_terminal_widget.set_shell_command(command.parameters.get(0));
+			return;
 
-		// case Command.CommandType.RUN_SHELL_COMMAND:
-		// 	if (command.parameters.is_empty)
-		// 		return;
-		// 	active_terminal_widget.run_shell_command(command.parameters.get(0));
-		// 	return;
+		case Command.CommandType.RUN_SHELL_COMMAND:
+			if (command.parameters.is_empty)
+				return;
+			active_terminal_widget.run_shell_command(command.parameters.get(0));
+			return;
 
-		// case Command.CommandType.TOGGLE_VISIBLE:
-		// 	// TODO: Bring window to foreground if visible but not active
-		// 	//       This is made difficult by the fact that global
-		// 	//       key bindings prevent is_active from working
-		// 	//       correctly
-		// 	if (main_window.get_window().is_visible()) {
-		// 		main_window.hide();
-		// 	} else {
-		// 		main_window.present();
-		// 	}
-		// 	return;
+		case Command.CommandType.TOGGLE_VISIBLE:
+			// TODO: Bring window to foreground if visible but not active
+			//       This is made difficult by the fact that global
+			//       key bindings prevent is_active from working
+			//       correctly
+			if (main_window.get_window().is_visible()) {
+				main_window.hide();
+			} else {
+				main_window.present();
+			}
+			return;
 
-		// case Command.CommandType.TOGGLE_FULLSCREEN:
-		// 	if ((main_window.get_window().get_state() & Gdk.WindowState.FULLSCREEN) != 0) {
-		// 		main_window.unfullscreen();
-		// 	} else {
-		// 		main_window.fullscreen();
-		// 	}
-		// 	return;
+		case Command.CommandType.TOGGLE_FULLSCREEN:
+			if ((main_window.get_window().get_state() & Gdk.WindowState.FULLSCREEN) != 0) {
+				main_window.unfullscreen();
+			} else {
+				main_window.fullscreen();
+			}
+			return;
 
-		// case Command.CommandType.TOGGLE_DROPDOWN:
-		// 	if (main_window.decorated) {
-		// 		// Hide window to avoid any noisy window manager
-		// 		// transitions when resizing and also to allow
-		// 		// resizing to exact screen width regardless of
-		// 		// geometry constraints
-		// 		// TODO: Geometry constraints are lost when toggling dropdown
-		// 		//       on and off and then showing window
-		// 		main_window.hide();
-		// 		main_window.decorated = false;
-		// 		// TODO: Make height a user setting
-		// 		// TODO: Account for vertical padding
-		// 		Gdk.Rectangle monitor_geometry;
-		// 		main_window.screen.get_monitor_geometry(main_window.screen.get_primary_monitor(), out monitor_geometry);
-		// 		main_window.move(monitor_geometry.x, monitor_geometry.y);
-		// 		main_window.resize(monitor_geometry.width, 15 * Settings.get_default().character_height);
-		// 		main_window.present();
-		// 		main_window.set_keep_above(true);
-		// 	} else {
-		// 		main_window.set_keep_above(false);
-		// 		main_window.hide();
-		// 		main_window.decorated = true;
-		// 	}
-		// 	return;
+		case Command.CommandType.TOGGLE_DROPDOWN:
+			if (main_window.decorated) {
+				// Hide window to avoid any noisy window manager
+				// transitions when resizing and also to allow
+				// resizing to exact screen width regardless of
+				// geometry constraints
+				// TODO: Geometry constraints are lost when toggling dropdown
+				//       on and off and then showing window
+				main_window.hide();
+				main_window.decorated = false;
+				// TODO: Make height a user setting
+				// TODO: Account for vertical padding
+				Gdk.Rectangle monitor_geometry;
+				main_window.screen.get_monitor_geometry(main_window.screen.get_primary_monitor(), out monitor_geometry);
+				main_window.move(monitor_geometry.x, monitor_geometry.y);
+				main_window.resize(monitor_geometry.width, 15 * Settings.get_default().character_height);
+				main_window.present();
+				main_window.set_keep_above(true);
+			} else {
+				main_window.set_keep_above(false);
+				main_window.hide();
+				main_window.decorated = true;
+			}
+			return;
 
-		// case Command.CommandType.ADD_TAB:
-		// 	if (active_terminal_widget != null) {
-		// 		for (int i = 0; i < command.get_numeric_parameter(0, 1); i++)
-		// 			active_terminal_widget.add_tab();
-		// 	}
-		// 	return;
+		case Command.CommandType.ADD_TAB:
+			if (active_terminal_widget != null) {
+				for (int i = 0; i < command.get_numeric_parameter(0, 1); i++)
+					active_terminal_widget.add_tab();
+			}
+			return;
 
-		// case Command.CommandType.SPLIT:
-		// 	if (active_terminal_widget != null) {
-		// 		var orientation = command.get_text_parameter(0, "HORIZONTALLY");
-		// 		switch (orientation) {
-		// 		case "HORIZONTALLY":
-		// 			active_terminal_widget.split(Gtk.Orientation.HORIZONTAL);
-		// 			break;
-		// 		case "VERTICALLY":
-		// 			active_terminal_widget.split(Gtk.Orientation.VERTICAL);
-		// 			break;
-		// 		default:
-		// 			warning(_("Unsupported split orientation: %s"), orientation);
-		// 			break;
-		// 		}
-		// 	}
-		// 	return;
+		case Command.CommandType.SPLIT:
+			if (active_terminal_widget != null) {
+				var orientation = command.get_text_parameter(0, "HORIZONTALLY");
+				switch (orientation) {
+				case "HORIZONTALLY":
+					active_terminal_widget.split(Gtk.Orientation.HORIZONTAL);
+					break;
+				case "VERTICALLY":
+					active_terminal_widget.split(Gtk.Orientation.VERTICAL);
+					break;
+				default:
+					warning(_("Unsupported split orientation: %s"), orientation);
+					break;
+				}
+			}
+			return;
 
-		// case Command.CommandType.CLOSE:
-		// 	if (active_terminal_widget != null) {
-		// 		active_terminal_widget.close();
-		// 	}
-		// 	return;
+		case Command.CommandType.CLOSE:
+			if (active_terminal_widget != null) {
+				active_terminal_widget.close();
+			}
+			return;
 
-		// case Command.CommandType.LOG:
-		// 	foreach (var parameter in command.parameters) {
-		// 		message(_("Log entry: '%s'"), parameter);
-		// 	}
-		// 	return;
+		case Command.CommandType.LOG:
+			foreach (var parameter in command.parameters) {
+				message(_("Log entry: '%s'"), parameter);
+			}
+			return;
 
-		// case Command.CommandType.PRINT_METRICS:
-		// 	Metrics.print_block_statistics();
-		// 	return;
+		case Command.CommandType.PRINT_METRICS:
+			Metrics.print_block_statistics();
+			return;
 
-		// case Command.CommandType.COPY_TO_CLIPBOARD:
-		// 	if (command.parameters.is_empty)
-		// 		return;
-		// 	Utilities.set_clipboard_text(command.parameters.get(0));
-		// 	return;
+		case Command.CommandType.COPY_TO_CLIPBOARD:
+			if (command.parameters.is_empty)
+				return;
+			Utilities.set_clipboard_text(command.parameters.get(0));
+			return;
 
-		// case Command.CommandType.PASTE_FROM_CLIPBOARD:
-		// 	active_terminal_widget.send_text_to_shell(Utilities.get_clipboard_text());
-		// 	return;
+		case Command.CommandType.PASTE_FROM_CLIPBOARD:
+			active_terminal_widget.send_text_to_shell(Utilities.get_clipboard_text());
+			return;
 
-		// case Command.CommandType.OPEN_URL:
-		// 	if (command.parameters.is_empty)
-		// 		return;
-		// 	var url = command.parameters.get(0);
-		// 	try {
-		// 		AppInfo.launch_default_for_uri((url.index_of("www.") == 0) ? "http://" + url : url, null);
-		// 	} catch (Error e) { warning(_("Launching %s failed: %s"), url, e.message); }
-		// 	return;
+		case Command.CommandType.OPEN_URL:
+			if (command.parameters.is_empty)
+				return;
+			var url = command.parameters.get(0);
+			try {
+				AppInfo.launch_default_for_uri((url.index_of("www.") == 0) ? "http://" + url : url, null);
+			} catch (Error e) { warning(_("Launching %s failed: %s"), url, e.message); }
+			return;
 
-		// default:
-		// 	warning(_("Unsupported command: %s"), command.command.to_string());
-		// 	return;
-		// }
+		default:
+			warning(_("Unsupported command: %s"), command.command.to_string());
+			return;
+		}
 	}
 
 	public static int main(string[] args) {

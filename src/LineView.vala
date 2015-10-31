@@ -20,73 +20,61 @@
  * along with Final Term.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-public class LineView : Clutter.Actor {
+using Gtk;
+
+public class LineView : Box {
 
 	private TerminalOutput.OutputLine original_output_line;
 	private TerminalOutput.OutputLine output_line;
 	
 	private LineContainer line_container;
 
-	private Mx.Button collapse_button = null;
-	private Clutter.Text text_container;
+	private ToggleButton collapse_button = null;
+	private Label text_container;
 
 	public bool is_prompt_line { get {return original_output_line.is_prompt_line;}}
 
 	public LineView(TerminalOutput.OutputLine output_line, LineContainer line_container) {
-		layout_manager = new Clutter.BoxLayout();
-
 		original_output_line = output_line;
 		this.line_container = line_container;
 
-		text_container = new Clutter.Text();
+		text_container = new Label ("");
+		text_container.wrap = true;
+		text_container.wrap_mode = Pango.WrapMode.CHAR;
 
-		// This should simply be
-		//   text_container.x_expand = true;
-		// but that causes compilation problems on platforms having
-		// outdated versions of Clutter or its Vala bindings
-		(layout_manager as Clutter.BoxLayout).set_expand(text_container, true);
-		(layout_manager as Clutter.BoxLayout).set_fill(text_container, true, false);
-
-		text_container.line_wrap = true;
-		text_container.line_wrap_mode = Pango.WrapMode.CHAR;
-
-		text_container.reactive = true;
-		text_container.motion_event.connect(on_text_container_motion_event);
-
-		add(text_container);
+		var events = new EventBox ();
+		events.visible_window = false;
+		events.add (text_container);
+		events.set_events(Gdk.EventMask.POINTER_MOTION_MASK);
+		events.motion_notify_event.connect(on_text_container_motion_event);
+		pack_start(events, false, false);
 
 		on_settings_changed(null);
 		Settings.get_default().changed.connect(on_settings_changed);
 	}
 
-	public void get_character_coordinates(int character_index, out int x, out int y) {
-		float character_x;
-		float character_y;
-		text_container.position_to_coords(character_index, out character_x, out character_y);
+	public void get_character_coordinates(int index, out int x, out int y) {
+		var layout = text_container.get_layout ();
+		var length = layout.get_character_count ();
+		Pango.Rectangle graph;
+		if (index > length) {
+			graph = layout.index_to_pos (length);
+			graph.x += Settings.get_default ().character_width*Pango.SCALE;
+		} else
+			graph = layout.index_to_pos (index);
 
-		// NOTE: Because this function is called in every rendering cycle,
-		//       it is highly performance critical.
-		//       Theoretically, only text_container.get_allocation_box()
-		//       is guaranteed to return an up-to-date result here; however,
-		//       get_allocation_box forces a relayout (see Clutter source code)
-		//       and is thus extremely slow, while text_container.allocation
-		//       appears to behave identically for this case.
-		x = (int)(character_x + text_container.allocation.get_x());
-		y = (int)(character_y + text_container.allocation.get_y());
+		Allocation box;
+		text_container.get_allocation (out box);
+		x = graph.x/Pango.SCALE + box.x;
+		y = graph.y/Pango.SCALE + box.y;
 	}
 
-	private bool on_text_container_motion_event(Clutter.MotionEvent event) {
-		// Apparently, motion event coordinates are relative to the stage
-		// (the Clutter documentation does not specify this)
-		float text_container_x;
-		float text_container_y;
-		text_container.get_transformed_position(out text_container_x, out text_container_y);
-
+	private bool on_text_container_motion_event(Gdk.EventMotion event) {
 		int byte_index;
 		int trailing;
 		if (text_container.get_layout().xy_to_index(
-				(int)(event.x - text_container_x) * Pango.SCALE,
-				(int)(event.y - text_container_y) * Pango.SCALE,
+				(int) (event.x - text_container.margin_left) * Pango.SCALE,
+				(int) event.y * Pango.SCALE,
 				out byte_index, out trailing)) {
 
 			var character_index = Utilities.byte_index_to_character_index(
@@ -120,24 +108,20 @@ public class LineView : Clutter.Actor {
 
 		if (is_prompt_line && collapse_button == null) {
 			// Collapse button has not been created yet
-			collapse_button = new Mx.Button.with_label("●");
+			collapse_button = new ToggleButton.with_label("●");
 
-			collapse_button.style_class = "collapse-button";
+			collapse_button.get_style_context ().add_class ("collapse-button");
 			collapse_button.clicked.connect(on_collapse_button_clicked);
 
 			update_collapse_button();
 
-			// BoxLayout will arrange the LineView's children
-			// from left to right in their natural order, so the
-			// collapse button has to be inserted before the
-			// text container to be placed on the left
-			insert_child_at_index(collapse_button, 0);
+			pack_start (collapse_button, false, false);
+			reorder_child (collapse_button, 0);
 
 		} else if (collapse_button != null) {
 			collapse_button.visible = is_prompt_line;
 			if (is_collapsible()) {
-				collapse_button.is_toggle = true;
-				if (collapse_button.toggled) {
+				if (collapse_button.active) {
 					collapse_button.set_label("▶");
 				} else {
 					collapse_button.set_label("▼");
@@ -147,10 +131,10 @@ public class LineView : Clutter.Actor {
 
 		if (is_prompt_line) {
 			if (output_line.return_code == 0) {
-				collapse_button.style_pseudo_class_remove("error");
+				collapse_button.get_style_context ().remove_class ("error");
 				collapse_button.tooltip_text = null;
 			} else {
-				collapse_button.style_pseudo_class_add("error");
+				collapse_button.get_style_context ().add_class ("error");
 				collapse_button.tooltip_text = _("Return code") + ": " + output_line.return_code.to_string();
 			}
 		}
@@ -168,12 +152,10 @@ public class LineView : Clutter.Actor {
 	}
 
 	private void update_collapse_button() {
-		collapse_button.style = Settings.get_default().theme.style;
-
-		collapse_button.margin_left = Settings.get_default().theme.collapse_button_x;
-		collapse_button.margin_top = Settings.get_default().theme.collapse_button_y;
-		collapse_button.width = Settings.get_default().theme.collapse_button_width;
-		collapse_button.height = Settings.get_default().theme.collapse_button_height;
+		collapse_button.set_size_request (
+			Settings.get_default().theme.collapse_button_width,
+			Settings.get_default().theme.collapse_button_height
+		);
 	}
 
 	private string get_markup(TerminalOutput.OutputLine output_line) {
@@ -202,20 +184,12 @@ public class LineView : Clutter.Actor {
 		if (collapse_button != null)
 			update_collapse_button();
 
-		text_container.margin_right = Settings.get_default().theme.margin_right;
-
-		text_container.color = Settings.get_default().foreground_color;
-
-		// TODO: Clutter bug? The following sometimes does not work:
-		//text_container.font_description = Settings.get_default().terminal_font;
-		text_container.font_name = Settings.get_default().terminal_font_name;
-
 		render_line();
 	}
 
 	private void on_collapse_button_clicked() {
 		if (is_collapsible()) {
-			if (collapse_button.toggled) {
+			if (collapse_button.active) {
 				collapse_button.set_label("▶");
 				collapsed(this);
 			} else {

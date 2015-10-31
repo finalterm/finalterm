@@ -25,24 +25,20 @@ public class Theme : Object {
 	public string name { get; set; }
 	public string author { get; set; }
 
-	public Mx.Style style { get; set; }
-
 	public int gutter_size { get; set; }
-	public Clutter.Color gutter_color { get; set; }
-	public Clutter.Color gutter_border_color { get; set; }
 
 	public int collapse_button_x { get; set; }
 	public int collapse_button_y { get; set; }
 	public int collapse_button_width { get; set; }
 	public int collapse_button_height { get; set; }
 
-	public Clutter.Color menu_button_arrow_color { get; set; }
+	public Gdk.RGBA menu_button_arrow_color { get; set; }
 
 	public int margin_left { get; set; }
 	public int margin_right { get; set; }
 
-	public int cursor_minimum_opacity { get; set; }
-	public int cursor_maximum_opacity { get; set; }
+	public double cursor_minimum_opacity { get; set; }
+	public double cursor_maximum_opacity { get; set; }
 	public int cursor_blinking_interval { get; set; }
 
 	public int cursor_motion_speed { get; set; }
@@ -57,27 +53,27 @@ public class Theme : Object {
 			name   = theme_file.get_string("About", "name");
 			author = theme_file.get_string("About", "author");
 
-			style = new Mx.Style();
-			style.load_from_file(Utilities.get_absolute_filename(filename,
+			var style = new Gtk.CssProvider();
+			style.load_from_path(Utilities.get_absolute_filename(filename,
 					theme_file.get_string("Theme", "stylesheet")));
 
-			gutter_size = theme_file.get_integer("Theme", "gutter-size");
+			Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), style, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
 
-			gutter_color = Clutter.Color.from_string(theme_file.get_string("Theme", "gutter-color"));
-			gutter_border_color = Clutter.Color.from_string(theme_file.get_string("Theme", "gutter-border-color"));
+			gutter_size = theme_file.get_integer("Theme", "gutter-size");
 
 			collapse_button_x = theme_file.get_integer("Theme", "collapse-button-x");
 			collapse_button_y = theme_file.get_integer("Theme", "collapse-button-y");
 			collapse_button_width = theme_file.get_integer("Theme", "collapse-button-width");
 			collapse_button_height = theme_file.get_integer("Theme", "collapse-button-height");
 
-			menu_button_arrow_color = Clutter.Color.from_string(theme_file.get_string("Theme", "menu-button-arrow-color"));
+			menu_button_arrow_color = Gdk.RGBA();
+			menu_button_arrow_color.parse(theme_file.get_string("Theme", "menu-button-arrow-color"));
 
 			margin_left = theme_file.get_integer("Theme", "margin-left");
 			margin_right = theme_file.get_integer("Theme", "margin-right");
 
-			cursor_minimum_opacity = theme_file.get_integer("Theme", "cursor-minimum-opacity");
-			cursor_maximum_opacity = theme_file.get_integer("Theme", "cursor-maximum-opacity");
+			cursor_minimum_opacity = theme_file.get_double("Theme", "cursor-minimum-opacity");
+			cursor_maximum_opacity = theme_file.get_double("Theme", "cursor-maximum-opacity");
 			cursor_blinking_interval = theme_file.get_integer("Theme", "cursor-blinking-interval");
 
 			cursor_motion_speed = theme_file.get_integer("Theme", "cursor-motion-speed");

@@ -91,9 +91,9 @@ public class Utilities : Object {
 	// Returns a string representation of the specified color
 	// that can be parsed by the Pango markup parser
 	public static string get_parsable_color_string(Gdk.RGBA color) {
-		// Note that color.to_string() returns a string of the form "#rrggbbaa"
+		// Note that color.to_string() returns a string of the form "rgba (r, g, b, a)"
 		// while the Pango markup parser expects the form "#rrggbb"
-		return "#%02x%02x%02x".printf((int)(255/color.red), (int)(255/color.green), (int)(255/color.blue));
+		return "#%02x%02x%02x".printf((int)(255*color.red), (int)(255*color.green), (int)(255*color.blue));
 	}
 
 	public static void get_text_size(Pango.FontDescription font, string text, out int width, out int height) {
@@ -176,25 +176,19 @@ public class Utilities : Object {
 		get_clipboard().set_text(text, -1);
 	}
 
-	// public static void get_actor_screen_position(GtkClutter.Embed clutter_embed, Clutter.Actor actor, out int x, out int y) {
-	// 	// Position of parent window on screen
-	// 	int window_x;
-	// 	int window_y;
-	// 	clutter_embed.get_parent_window().get_origin(out window_x, out window_y);
+	public static void get_widget_screen_position(Gtk.Widget widget, out int x, out int y) {
+		// Position of parent window on screen
+		int window_x;
+		int window_y;
+		widget.get_parent_window().get_origin(out window_x, out window_y);
 
-	// 	// Position of Clutter widget within parent window
-	// 	// TODO: Is this always relative to the parent window?
-	// 	Gtk.Allocation embed_allocation;
-	// 	clutter_embed.get_allocation(out embed_allocation);
+		// Position of widget within parent window
+		Gtk.Allocation allocation;
+		widget.get_allocation(out allocation);
 
-	// 	// Position of actor within Clutter widget (stage)
-	// 	float actor_x;
-	// 	float actor_y;
-	// 	actor.get_transformed_position(out actor_x, out actor_y);
-
-	// 	x = window_x + embed_allocation.x + (int)actor_x;
-	// 	y = window_y + embed_allocation.y + (int)actor_y;
-	// }
+		x = window_x + allocation.x;
+		y = window_y + allocation.y;
+	}
 
 	public delegate void ScheduleFunction();
 

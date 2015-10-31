@@ -1,114 +1,39 @@
-MxButton.menu-button > MxLabel {
-  color: #000000;
+.inactive-effect {
+  background-color: #000000;
+  opacity: 0.8;
 }
 
-MxButton.menu-button {
-  padding: 3 3 3 3;
-  border-image: url("button.png") 1;
-}
-MxButton.menu-button:hover {
-  padding: 3 3 3 3;
-  border-image: url("button.png") 1;
-}
-MxButton.menu-button:active {
-  padding: 4 2 2 4;
-  border-image: url("button-active.png") 1;
-}
-MxButton.menu-button:checked {
-  padding: 4 2 2 4;
-  border-image: url("button-active.png") 1;
-}
-MxButton.menu-button:checked:hover {
-  padding: 4 2 2 4;
-  border-image: url("button-active.png") 1;
-}
-MxButton.menu-button:checked:active {
-  padding: 4 2 2 4;
-  border-image: url("button-active.png") 1;
-}
-
-MxButton.collapse-button {
-  padding: 0;
-  font-size: 12;
-  color: #ffffff99;
-  border-image: none;
-}
-MxButton.collapse-button:hover {
-  color: #ffffffcc;
-}
-MxButton.collapse-button:active {
-  color: #ffffffff;
-}
-MxButton.collapse-button:error {
-  color: #ff000099;
-}
-MxButton.collapse-button:error:hover {
-  color: #ff0000cc;
-}
-MxButton.collapse-button:error:active {
-  color: #ff0000ff;
-}
-
-MxScrollView {
+GtkPaned {
   background-color: transparent;
-  -mx-scrollbar-width: 10;
-  -mx-scrollbar-height: 10;
-  /* For the rationale behind this, see TerminalView.vala */
-  padding: 15 0 0 0;
 }
 
-MxScrollView MxBoxLayout {
-  /* For the rationale behind this, see TerminalView.vala */
-  padding: 0 0 15 0;
+.gutter {
+  background-color: #777777;
+  border-color: #777777;
+  border-width: 1px;
 }
 
-MxScrollBar {
-  /* Hack to hide the stepper buttons, which is not possible in Mx */
-  /* For the rationale behind this, see TerminalView.vala */
-  padding: -10 2 20 2;
+.menu-button {
+  padding: 0;
+  margin: 0;
+  border-width: 0;
 }
 
-MxScrollBar *.htrough,
-MxScrollBar *.vtrough {
-  background-color: #666666cc;
-  border-image: none;
+.menu-button .label {
+  padding: 3px;
 }
 
-MxScrollBar MxButton.hhandle,
-MxScrollBar MxButton.vhandle {
-  background-color: #ffffff66;
-  border-image: none;
-}
-MxScrollBar MxButton.hhandle:hover,
-MxScrollBar MxButton.vhandle:hover {
-  background-color: #ffffff99;
-  border-image: none;
-}
-MxScrollBar MxButton.hhandle:active,
-MxScrollBar MxButton.vhandle:active {
-  background-color: #ffffffcc;
-  border-image: none;
-}
-
-MxLabel.progress-label {
-  padding: 2 5 4 5;
+.collapse-button {
+  padding: 0;
+  margin: 0;
+  font-size: 12px;
   color: #ffffff;
-  /* TODO: This should work according to https://github.com/clutter-project/mx/commit/c108215, but doesn't */
-  /*text-shadow: 2 2 2 #000000;*/
-}
-
-/* This is the workaround */
-MxLabel.progress-label-shadow {
-  padding: 3 4 3 6;
-  color: #000000;
-}
-
-MxProgressBar {
-  background-color: #77777766;
   border-image: none;
 }
 
-MxProgressBar MxProgressBarFill {
-  background-color: #92b932cc;
-  border-image: none;
+.collapse-button:hover {
+  color: #ffffff;
+}
+.collapse-button:active {
+  color: #ffffff;
 }

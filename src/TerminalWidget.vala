@@ -20,13 +20,11 @@
  * along with Final Term.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-public class TerminalWidget : GtkClutter.Embed, NestingContainerChild {
+public class TerminalWidget : Gtk.EventBox, NestingContainerChild {
 
 	public bool is_active { get; set; }
 
 	public string title { get; set; }
-
-	private Clutter.Stage stage;
 
 	private Terminal terminal;
 	private TerminalView terminal_view;
@@ -36,9 +34,6 @@ public class TerminalWidget : GtkClutter.Embed, NestingContainerChild {
 	private Gtk.Menu context_menu;
 
 	public TerminalWidget() {
-		stage = (Clutter.Stage)get_stage();
-		stage.use_alpha = true;
-
 		terminal = new Terminal();
 
 		title = terminal.terminal_output.terminal_title;
@@ -68,38 +63,48 @@ public class TerminalWidget : GtkClutter.Embed, NestingContainerChild {
 				terminal.terminate_shell();
 		});
 
-		terminal_view = new TerminalView(terminal, this);
+
+		terminal_view = new TerminalView(terminal);
 		terminal.terminal_view = terminal_view;
+		add (terminal_view);
 
-		stage.add(terminal_view);
-
-		var inactive_effect = new Clutter.BrightnessContrastEffect();
-		inactive_effect.set_brightness(-0.2f);
-		inactive_effect.set_contrast(-0.4f);
+		var inactive_effect = new Gtk.DrawingArea ();
+		inactive_effect.get_style_context ().add_class("inactive-effect");
+		terminal_view.put(inactive_effect, 0, 0);
+		terminal_view.size_allocate.connect((alloc) => {
+			var child = Gtk.Allocation ();
+			child.x = 0;
+			child.y = 0;
+			child.width = alloc.width;
+			child.height = alloc.height;
+			inactive_effect.size_allocate (child);
+		});
+		inactive_effect.hide ();
+		inactive_effect.no_show_all = true;
 
 		notify["is-active"].connect(() => {
-			terminal_view.clear_effects();
-			if (!is_active)
-				terminal_view.add_effect(inactive_effect);
+			if (is_active)
+				inactive_effect.hide ();
+			else
+				inactive_effect.show ();
 
 			terminal_view.terminal_output_view.is_active = is_active;
 		});
 
 		configure_event.connect(on_configure_event);
 		button_press_event.connect(on_button_press_event);
-
-		on_settings_changed(null);
-		Settings.get_default().changed.connect(on_settings_changed);
 	}
 
 	protected override void get_preferred_width(out int minimum_width, out int natural_width) {
 		natural_width = terminal_view.terminal_output_view.get_horizontal_padding() +
 				(terminal.columns * Settings.get_default().character_width);
+		minimum_width = 2;
 	}
 
 	protected override void get_preferred_height(out int minimum_height, out int natural_height) {
 		natural_height = terminal_view.terminal_output_view.get_vertical_padding() +
 				(terminal.lines * Settings.get_default().character_height);
+		minimum_height = 2;
 	}
 
 	public void clear_shell_command() {
@@ -123,15 +128,11 @@ public class TerminalWidget : GtkClutter.Embed, NestingContainerChild {
 	}
 
 	private bool on_configure_event(Gdk.EventConfigure event) {
-		// TODO: Use "expand" properties to achieve this?
-		terminal_view.width  = event.width;
-		terminal_view.height = event.height;
-
 		// Reposition autocompletion popup when window is moved or resized
 		// to make it "stick" to the prompt line
-		if (FinalTerm.autocompletion.is_popup_visible()) {
-			terminal.update_autocompletion_position();
-		}
+		// if (FinalTerm.autocompletion.is_popup_visible()) {
+		// 	terminal.update_autocompletion_position();
+		// }
 
 		return false;
 	}
@@ -201,11 +202,4 @@ public class TerminalWidget : GtkClutter.Embed, NestingContainerChild {
 
 		return context_menu;
 	}
-
-	private void on_settings_changed(string? key) {
-		var background_color = Settings.get_default().background_color;
-		background_color.alpha = (uint8)(Settings.get_default().opacity * 255.0);
-		stage.background_color = background_color;
-	}
-
 }
