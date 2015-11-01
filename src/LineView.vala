@@ -117,9 +117,14 @@ public class LineView : Box {
 
 			pack_start (collapse_button, false, false);
 			reorder_child (collapse_button, 0);
+			collapse_button.show ();
 
 		} else if (collapse_button != null) {
-			collapse_button.visible = is_prompt_line;
+			if (is_prompt_line)
+				collapse_button.show ();
+			else
+				collapse_button.hide ();
+
 			if (is_collapsible()) {
 				if (collapse_button.active) {
 					collapse_button.set_label("▶");
