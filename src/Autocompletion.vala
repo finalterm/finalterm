@@ -115,11 +115,14 @@ public class Autocompletion : Object {
 	}
 
 	public bool is_command_selected() {
-		return get_selected_command () != null;
+		return tree_view.has_selection ();
 	}
 
 	public string? get_selected_command() {
-		return ((AutocompletionEntry)tree_view.get_selection ()).text;
+		if (is_command_selected ())
+			return ((AutocompletionEntry)tree_view.get_selection ()).text;
+
+		return null;
 	}
 
 	public void select_previous_command() {

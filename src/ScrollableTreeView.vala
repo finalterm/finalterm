@@ -121,6 +121,11 @@ public class ScrollableTreeView<T> : ScrolledWindow {
 		return val;
 	}
 
+	public bool has_selection ()
+	{
+		return list.get_selection ().count_selected_rows () > 0;
+	}
+
 	public Object get_item (int index)
 	{
 		TreeIter iter;
