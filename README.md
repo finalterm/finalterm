@@ -1,12 +1,16 @@
-### :bangbang: Final Term is no longer being actively developed. The official discontinuation announcement can be found at http://worldwidemann.com/finally-terminated. :bangbang:
+# Final Term is back!
 
-<br><br><br>
+I have made the decision to pickup development on Final Term. Step one was to remove the dependencies on Clutter and Mx and move to a full Gtk setup. This has been done, but is sure to have introduced many new bugs.
+
+## Changes
+
+* Remove Clutter and Mx.
+* Use CSS to render settings and animations.
+
 
 # About Final Term
 
 Final Term is a new breed of terminal emulator.
-
-![Screencast](http://finalterm.org/screencast.gif)
 
 It goes beyond mere emulation and understands what is happening inside the shell it is hosting. This allows it to offer features no other terminal can, including:
 
@@ -14,17 +18,13 @@ It goes beyond mere emulation and understands what is happening inside the shell
 * Smart command completion
 * GUI terminal controls
 
-For more information, visit [http://finalterm.org](http://finalterm.org).
 
 # Installation
 
-Final Term is written in [Vala](https://live.gnome.org/Vala) and built on top of [GTK+ 3](http://www.gtk.org), [Clutter](http://blogs.gnome.org/clutter/) and [Mx](https://github.com/clutter-project/mx). It requires the development files for the following software packages:
+Final Term is written in [Vala](https://live.gnome.org/Vala) and built on top of [GTK+ 3](http://www.gtk.org). It requires the development files for the following software packages:
 
 * [Gee](https://live.gnome.org/Libgee)
 * [GTK+ 3](http://www.gtk.org)
-* [Clutter](http://blogs.gnome.org/clutter/) >= 1.12
-* [Clutter-Gtk](http://blogs.gnome.org/clutter/)
-* [Mx](https://github.com/clutter-project/mx)
 * [keybinder-3.0](https://github.com/engla/keybinder/tree/keybinder-3.0)
 * [libnotify](https://developer.gnome.org/libnotify/) _Optional_, for desktop notifications support
 * [libunity](https://launchpad.net/libunity) _Optional_, for Unity launcher integration (progress bars)
@@ -34,8 +34,8 @@ Additionally, it requires [intltool](http://freedesktop.org/wiki/Software/intlto
 To install Final Term, execute these shell commands:
 
 ```sh
-git clone https://github.com/p-e-w/finalterm.git
-cd finalterm/
+git clone https://github.com/RedHatter/finalterm-reborn.git
+cd finalterm-reborn/
 mkdir build
 cd build/
 cmake ..
@@ -44,54 +44,6 @@ sudo make install
 ```
 
 If you want to install to a custom directory your `XDG_DATA_DIRS` environment variable has to point to the prefix with the file `glib-2.0/schemas/gschemas.compiled` in it.
-
-## Instructions for Ubuntu
-
-Thanks to the work of Bob Mottram (packaging) and GitHub user versable (PPA setup), Ubuntu is currently the easiest platform to install Final Term on:
-
-```sh
-sudo add-apt-repository ppa:finalterm/daily
-sudo apt-get update
-sudo apt-get install finalterm
-```
-
-The PPA is synchronized with the GitHub repository and should always deliver the latest version with a few hours delay at most.
-
-## Instructions for Fedora
-
-You can use packages from [Copr by Matthew Miller](http://copr.fedoraproject.org/coprs/mattdm/finalterm/).
-
-### Fedora 19
-
-```
-sudo wget http://copr.fedoraproject.org/coprs/mattdm/finalterm/repo/fedora-19-i386/mattdm-finalterm-fedora-19-i386.repo -O /etc/yum.repos.d/finalterm.repo
-sudo yum update
-sudo yum install finalterm
-```
-
-### Fedora 20
-
-```
-sudo wget http://copr.fedoraproject.org/coprs/mattdm/finalterm/repo/fedora-20-i386/mattdm-finalterm-fedora-20-i386.repo -O /etc/yum.repos.d/finalterm.repo
-sudo yum update
-sudo yum install finalterm
-```
-
-### Fedora Rawhide
-
-```
-sudo wget http://copr.fedoraproject.org/coprs/mattdm/finalterm/repo/fedora-rawhide-i386/mattdm-finalterm-fedora-rawhide-i386.repo -O /etc/yum.repos.d/finalterm.repo
-sudo yum update
-sudo yum install finalterm
-```
-
-## Instructions for Arch Linux
-
-There is an AUR for Final Term maintained by Arch Linux user kens: [https://aur.archlinux.org/packages/finalterm-git/](https://aur.archlinux.org/packages/finalterm-git/).
-
-## Instructions for Gentoo
-
-A [live ebuild for Final Term](http://git.overlays.gentoo.org/gitweb/?p=proj/sunrise-reviewed.git;a=tree;f=x11-terms/finalterm;hb=HEAD) is in Gentoo's Sunrise overlay courtesy of Ferenc Erki. You can find [usage instructions here](https://wiki.gentoo.org/wiki/Project:Sunrise).
 
 # Acknowledgments
 
