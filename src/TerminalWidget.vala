@@ -130,9 +130,9 @@ public class TerminalWidget : Gtk.EventBox, NestingContainerChild {
 	private bool on_configure_event(Gdk.EventConfigure event) {
 		// Reposition autocompletion popup when window is moved or resized
 		// to make it "stick" to the prompt line
-		// if (FinalTerm.autocompletion.is_popup_visible()) {
-		// 	terminal.update_autocompletion_position();
-		// }
+		if (FinalTerm.autocompletion.is_popup_visible()) {
+			terminal.update_autocompletion_position();
+		}
 
 		return false;
 	}

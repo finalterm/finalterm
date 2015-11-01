@@ -30,7 +30,7 @@ public class FinalTerm : Gtk.Application {
 	public static Gee.Map<string, ColorScheme> color_schemes;
 	public static Gee.Map<string, Theme> themes;
 
-	// public static Autocompletion autocompletion { get; set; }
+	public static Autocompletion autocompletion { get; set; }
 
 	private Gtk.Window main_window;
 	private Gtk.IMContext im_context;
@@ -93,8 +93,7 @@ public class FinalTerm : Gtk.Application {
 		}
 
 		themes = new Gee.HashMap<string, Theme>();
-		// foreach (var filename in Utilities.get_files_in_directory(Config.PKGDATADIR + "/Themes", ".fttheme", true)) {
-		foreach (var filename in Utilities.get_files_in_directory("/home/timothy/Projects/Vala/finalterm-reborn/data/Themes", ".fttheme", true)) {
+		foreach (var filename in Utilities.get_files_in_directory(Config.PKGDATADIR + "/Themes", ".fttheme", true)) {
 			var theme = new Theme.load_from_file(filename);
 			themes.set(theme.name, theme);
 		}
@@ -114,12 +113,12 @@ public class FinalTerm : Gtk.Application {
 
 		Command.execute_function = application.execute_command;
 
-		// string autocompletion_filename = data_dir.get_path() + "/commands.ftcompletion";
+		string autocompletion_filename = data_dir.get_path() + "/commands.ftcompletion";
 
-		// autocompletion = new Autocompletion();
+		autocompletion = new Autocompletion();
 
-		// if (File.new_for_path(autocompletion_filename).query_exists())
-		// 	autocompletion.load_entries_from_file(autocompletion_filename);
+		if (File.new_for_path(autocompletion_filename).query_exists())
+			autocompletion.load_entries_from_file(autocompletion_filename);
 
 		app_menu = create_application_menu();
 
@@ -255,34 +254,34 @@ public class FinalTerm : Gtk.Application {
 		// message(_("Application key: %s (%s)"), Gdk.keyval_name(event.keyval), event.str);
 
 		// Handle non-configurable keys (for command completion)
-		// if (autocompletion.is_popup_visible()) {
-		// 	if (event.keyval == Gdk.Key.Up &&
-		// 		autocompletion.is_command_selected()) {
-		// 		// The "Up" key only triggers command selection
-		// 		// if a command has already been selected;
-		// 		// this allows shell history to work as expected
-		// 		autocompletion.select_previous_command();
-		// 		return true;
+		if (autocompletion.is_popup_visible()) {
+			if (event.keyval == Gdk.Key.Up &&
+				autocompletion.is_command_selected()) {
+				// The "Up" key only triggers command selection
+				// if a command has already been selected;
+				// this allows shell history to work as expected
+				autocompletion.select_previous_command();
+				return true;
 
-		// 	} else if (event.keyval == Gdk.Key.Down) {
-		// 		autocompletion.select_next_command();
-		// 		return true;
+			} else if (event.keyval == Gdk.Key.Down) {
+				autocompletion.select_next_command();
+				return true;
 
-		// 	} elseif (event.keyval == Gdk.Key.Right &&
-		// 			   autocompletion.is_command_selected()) {
-		// 		active_terminal_widget.set_shell_command(autocompletion.get_selected_command());
-		// 		return true;
+			} else if (event.keyval == Gdk.Key.Right &&
+					   autocompletion.is_command_selected()) {
+				active_terminal_widget.set_shell_command(autocompletion.get_selected_command());
+				return true;
 
-		// 	} else if (event.keyval == Gdk.Key.Return &&
-		// 			   autocompletion.is_command_selected()) {
-		// 		active_terminal_widget.run_shell_command(autocompletion.get_selected_command());
-		// 		return true;
+			} else if (event.keyval == Gdk.Key.Return &&
+					   autocompletion.is_command_selected()) {
+				active_terminal_widget.run_shell_command(autocompletion.get_selected_command());
+				return true;
 
-		// 	} else if (event.keyval == Gdk.Key.Escape) {
-		// 		autocompletion.hide_popup();
-		// 		return true;
-		// 	}
-		// }
+			} else if (event.keyval == Gdk.Key.Escape) {
+				autocompletion.hide_popup();
+				return true;
+			}
+		}
 
 		// Handle user-configured keys only outside of preedit
 		if (!preedit_active) {
@@ -472,7 +471,9 @@ public class FinalTerm : Gtk.Application {
 		application = new FinalTerm();
 		var result = application.run(args);
 
-		// autocompletion.save_entries_to_file(autocompletion_filename);
+		var data_dir = File.new_for_path(Environment.get_user_data_dir() + "/finalterm");
+		string autocompletion_filename = data_dir.get_path() + "/commands.ftcompletion";
+		autocompletion.save_entries_to_file(autocompletion_filename);
 
 		return result;
 	}

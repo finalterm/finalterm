@@ -352,6 +352,27 @@ public class TerminalOutputView : ScrolledWindow {
 		}
 	}
 
+	public void get_screen_position(TerminalOutput.CursorPosition position, out int? x, out int? y) {
+		if (position.line >= line_container.get_line_count()) {
+			x = null;
+			y = null;
+			return;
+		}
+
+		var line = line_container.get_line_view(position.line);
+
+		int line_view_x;
+		int line_view_y;
+		Utilities.get_widget_screen_position(line, out line_view_x, out line_view_y);
+
+		int character_x;
+		int character_y;
+		line.get_character_coordinates(position.column, out character_x, out character_y);
+
+		x = line_view_x + character_x;
+		y = line_view_y + character_y;
+	}
+
 	public int get_horizontal_padding() {
 		return
 		// 	// Scrollbar width + padding (see style.css)
