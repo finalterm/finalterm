@@ -127,7 +127,7 @@ public class Autocompletion : Object {
 	}
 
 	public void select_previous_command() {
-		if (selected_index-1 > 0)
+		if (selected_index-1 >= 0)
 			select_entry(selected_index - 1);
 	}
 
@@ -163,8 +163,6 @@ public class Autocompletion : Object {
 			return;
 		}
 
-		tree_view.clear_selection();
-
 		// Determine optimal size for popup window
 
 		// TODO: Move values into constants / settings
@@ -176,6 +174,9 @@ public class Autocompletion : Object {
 		tree_view.set_size_request(width, height);
 
 		popup_window.show_all();
+
+		selected_index = -1;
+		tree_view.clear_selection();
 	}
 
 	public void move_popup(int x, int y) {
