@@ -176,20 +176,6 @@ public class Utilities : Object {
 		get_clipboard().set_text(text, -1);
 	}
 
-	public static void get_widget_screen_position(Gtk.Widget widget, out int x, out int y) {
-		// Position of parent window on screen
-		int window_x;
-		int window_y;
-		widget.get_parent_window().get_origin(out window_x, out window_y);
-
-		// Position of widget within parent window
-		Gtk.Allocation allocation;
-		widget.get_allocation(out allocation);
-
-		x = window_x + allocation.x;
-		y = window_y + allocation.y;
-	}
-
 	public delegate void ScheduleFunction();
 
 	private static Gee.Set<string> scheduled_functions;

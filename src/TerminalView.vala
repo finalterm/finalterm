@@ -107,10 +107,8 @@ public class TerminalOutputView : ScrolledWindow {
 
 	private LineContainer line_container;
 
-	private ToggleButton menu_button;
+	private MenuButton menu_button;
 	private Label menu_button_label;
-	private string menu_button_text;
-	private TextMenu text_menu;
 
 	private Gee.Set<int> updated_lines = new Gee.HashSet<int>();
 
@@ -128,21 +126,20 @@ public class TerminalOutputView : ScrolledWindow {
 		hadjustment.changed.connect(() => position_terminal_cursor(false));
 		vadjustment.changed.connect(() => position_terminal_cursor(false));
 
-		menu_button = new ToggleButton();
+		menu_button = new MenuButton();
 		menu_button.get_style_context().add_class("menu-button");
 		menu_button.leave_notify_event.connect((event) => {
-			// Clicking on menu button triggers an unwanted leave_event, which is
-			// ignored if event coordinates are in the button
-			Allocation size;
-			menu_button.get_allocation (out size);
-			if (event.x > size.x && event.x < size.x + size.width
-					&& event.y > size.y && event.y < size.y + size.height)
-				return false;
-			if (!menu_button.active)
-				menu_button.hide();
+			menu_button.hide();
 			return false;
 		});
-		menu_button.clicked.connect(on_menu_button_clicked);
+		menu_button.clicked.connect((e) => {
+			menu_button.show ();
+			ulong handler = 0;
+			handler = menu_button.popup.deactivate.connect(() => {
+				menu_button.hide ();
+				menu_button.popup.disconnect (handler);
+			});
+		});
 
 		menu_button_label = new Label("");
 		menu_button_label.use_markup = true;
@@ -174,29 +171,6 @@ public class TerminalOutputView : ScrolledWindow {
 			else
 				cursor.hide();
 		});
-	}
-
-	private void on_menu_button_clicked() {
-		if (menu_button.active) {
-			text_menu.text = menu_button_text;
-
-			// TODO: Disconnect handler after menu has been closed
-			text_menu.menu.deactivate.connect(() => {
-				text_menu.menu.popdown();
-				menu_button.active  = false;
-				menu_button.hide ();
-			});
-
-			text_menu.menu.popup(null, null, (menu, ref x, ref y, out push_in) => {
-				Utilities.get_widget_screen_position(menu_button, out x, out y);
-				Allocation size;
-				menu_button.get_allocation (out size);
-				y += size.height;
-				push_in = true;
-			}, 0, 0);
-		} else {
-			text_menu.menu.popdown();
-		}
 	}
 
 	// Expands the list of line views until it contains as many elements as the model
@@ -233,11 +207,8 @@ public class TerminalOutputView : ScrolledWindow {
 
 	private void on_line_view_text_menu_element_hovered(LineView line_view, int x, int y, int width, int height,
 			string text, TextMenu text_menu) {
-		if (menu_button.active)
-			return;
-
-		menu_button_text = text;
-		this.text_menu   = text_menu;
+		text_menu.text = text;
+		menu_button.popup = text_menu.menu;
 
 		menu_button_label.override_background_color(StateFlags.NORMAL,
 			Settings.get_default().color_scheme.get_indexed_color(
@@ -259,7 +230,8 @@ public class TerminalOutputView : ScrolledWindow {
 		Utilities.get_text_size(Settings.get_default().label_font, text_menu.label + ":  ",
 				out descriptor_width, out descriptor_height);
 
-		((Fixed) menu_button.parent).move (menu_button, x - descriptor_width, y);
+		x = x - descriptor_width > 0 ? x - descriptor_width : 0;
+		((Fixed) menu_button.parent).move (menu_button, x, y - (int) vadjustment.value);
 		menu_button.show ();
 	}
 
@@ -287,6 +259,7 @@ public class TerminalOutputView : ScrolledWindow {
 	{
 		var line_view = line_container.get_line_view (pos.line);
 		line_view.get_character_coordinates (pos.column, out x, out y);
+		y -= (int) vadjustment.value;
 	}
 
 	private void render_terminal_cursor() {
@@ -374,7 +347,7 @@ public class TerminalOutputView : ScrolledWindow {
 
 		int line_view_x;
 		int line_view_y;
-		Utilities.get_widget_screen_position(line, out line_view_x, out line_view_y);
+		line.get_window ().get_origin (out line_view_x, out line_view_y);
 
 		int character_x;
 		int character_y;
