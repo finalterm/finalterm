@@ -1,5 +1,6 @@
 /*
  * Copyright © 2013–2014 Philipp Emanuel Weidmann <pew@worldwidemann.com>
+ * Copyright © 2015 RedHatter <timothy@idioticdev.com>
  *
  * Nemo vir est qui mundum non reddat meliorem.
  *

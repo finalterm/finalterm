@@ -1,5 +1,6 @@
 /*
  * Copyright © 2013–2014 Tom Beckmann <tomjonabc@gmail.com>
+ * Copyright © 2015 RedHatter <timothy@idioticdev.com>
  *
  * Nemo vir est qui mundum non reddat meliorem.
  *
