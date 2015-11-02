@@ -56,9 +56,8 @@ Final Term's color schemes are generated using the wonderful [Base16 Builder](ht
 Final Term's application icon is a modified version of the terminal icon from the [Faenza icon theme](http://tiheum.deviantart.com/art/Faenza-Icons-173323228) by Matthieu James.
 
 # License
-
-Copyright © 2013–2014 Philipp Emanuel Weidmann (<pew@worldwidemann.com>)
-Copyright © 2015 RedHatter (<timothy@idioticdev.com>)
+Copyright © 2013–2014 Philipp Emanuel Weidmann (pew@worldwidemann.com)  
+Copyright © 2015 RedHatter (timothy@idioticdev.com)
 
 Final Term is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
