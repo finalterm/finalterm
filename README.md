@@ -5,7 +5,7 @@ I have made the decision to pickup development on Final Term. Step one was to re
 ## Changes
 
 * Remove Clutter and Mx.
-* Use CSS to render settings and animations.
+* Selection and copy.
 
 
 # About Final Term
