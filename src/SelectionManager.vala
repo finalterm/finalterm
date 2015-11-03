@@ -47,7 +47,7 @@ public class SelectionManager : Object {
 	}
 
 	private bool on_button_press_event(Gdk.EventButton event) {
-		if (event.type != Gdk.EventType.BUTTON_PRESS || event.button != 1)
+		if (event.button != 1)
 			return false;
 
 		if (selection != null)
@@ -66,8 +66,28 @@ public class SelectionManager : Object {
 
 		var line = line_container.get_line_view(line_number);
 		line_container.translate_coordinates (line, x, y, out x, out y);
-		selection.start = line.get_index_by_xy (x, y);
-		selection.lines.add(line);
+		switch (event.type) {
+			case Gdk.EventType.BUTTON_PRESS:
+				selection.start = line.get_index_by_xy (x, y);
+				selection.lines.add(line);
+				break;
+			case Gdk.EventType.2BUTTON_PRESS:
+				var index = line.get_index_by_xy (x, y);
+				var text = line.get_text();
+				selection.lines.add(line);
+				selection.start = text[0:index].last_index_of(" ")+1;
+				selection.end = text.index_of(" ", index);
+				selection.done = true;
+				selection.highlight();
+				break;
+			case Gdk.EventType.3BUTTON_PRESS:
+				selection.start = 0;
+				selection.lines.add(line);
+				selection.end = line.get_text().length;
+				selection.done = true;
+				selection.highlight();
+				break;
+		}
 
 		return false;
 	}
