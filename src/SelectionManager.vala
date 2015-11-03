@@ -50,6 +50,8 @@ public class SelectionManager : Object {
 			return false;
 
 		selection = new Selection ();
+		if (event.state == Gdk.ModifierType.SHIFT_MASK)
+			selection.type = Selection.SelectionType.COLUMN;
 
 		var line = line_container.get_line_view(line_number);
 		line_container.translate_coordinates (line, x, y, out x, out y);
@@ -102,10 +104,16 @@ public class SelectionManager : Object {
 	}
 
 	private class Selection {
-		public bool done = false;
 		public int start;
 		public int end;
 		public Gee.AbstractList<LineView> lines = new Gee.LinkedList<LineView>();
+		public SelectionType type = SelectionType.LINE;
+		public bool done = false;
+
+		public enum SelectionType {
+			LINE,
+			COLUMN
+		}
 
 		public void clear () {
 			foreach (var line in lines)
@@ -115,19 +123,28 @@ public class SelectionManager : Object {
 		}
 
 		public void highlight () {
-			var first = lines[0];
-			var last = lines[lines.size-1];
-			if (first.line_number < last.line_number) {
-				first.set_selection(start, -1);
-				last.set_selection(0, end);
-			} else if (first.line_number > last.line_number) {
-				first.set_selection(0, start);
-				last.set_selection(end, -1);
-			} else
-				first.set_selection(start, end);
+			switch(type) {
+				case SelectionType.LINE:
+					var first = lines[0];
+					var last = lines[lines.size-1];
+					if (first.line_number < last.line_number) {
+						first.set_selection(start, -1);
+						last.set_selection(0, end);
+					} else if (first.line_number > last.line_number) {
+						first.set_selection(0, start);
+						last.set_selection(end, -1);
+					} else
+						first.set_selection(start, end);
 
-			for (var i = 1; i < lines.size-1; i++)
-				lines[i].set_selection(0,-1);
+					for (var i = 1; i < lines.size-1; i++)
+						lines[i].set_selection(0, -1);
+					break;
+
+				case SelectionType.COLUMN:
+					for (var i = 0; i < lines.size; i++)
+						lines[i].set_selection(start, end);
+					break;
+			}
 		}
 	}
 }
