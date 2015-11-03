@@ -60,6 +60,16 @@ public class Settings : Object {
 		get { return _background_color; }
 	}
 
+	private Gdk.RGBA _selection_foreground;
+	public Gdk.RGBA selection_foreground {
+		get { return _selection_foreground; }
+	}
+
+	private Gdk.RGBA _selection_background;
+	public Gdk.RGBA selection_background {
+		get { return _selection_background; }
+	}
+
 	private string _theme_name;
 	public string theme_name {
 		get { return _theme_name; }
@@ -154,6 +164,8 @@ public class Settings : Object {
 		_color_scheme = FinalTerm.color_schemes.get(color_scheme_name);
 		_foreground_color = color_scheme.get_foreground_color(dark);
 		_background_color = color_scheme.get_background_color(dark);
+		_selection_foreground = _background_color;
+		_selection_background = _foreground_color;
 
 		_theme_name = settings.get_string("theme");
 		_theme = FinalTerm.themes.get(theme_name);

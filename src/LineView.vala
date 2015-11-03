@@ -32,8 +32,10 @@ public class LineView : Box {
 
 	private ToggleButton collapse_button = null;
 	private Label text_container;
+	private string markup;
 
 	public bool is_prompt_line { get {return original_output_line.is_prompt_line;}}
+	public int line_number { get; set; }
 
 	public LineView(TerminalOutput.OutputLine output_line, LineContainer line_container) {
 		original_output_line = output_line;
@@ -42,16 +44,57 @@ public class LineView : Box {
 		text_container = new Label ("");
 		text_container.wrap = true;
 		text_container.wrap_mode = Pango.WrapMode.CHAR;
-
-		var events = new EventBox ();
-		events.visible_window = false;
-		events.add (text_container);
-		events.set_events(Gdk.EventMask.POINTER_MOTION_MASK);
-		events.motion_notify_event.connect(on_text_container_motion_event);
-		pack_start(events, false, false);
+		pack_start(text_container, false, false);
 
 		on_settings_changed(null);
 		Settings.get_default().changed.connect(on_settings_changed);
+	}
+
+	public void set_selection (int index_1, int index_2) {
+		var layout = text_container.get_layout();
+		var length = layout.get_character_count ();
+		if (index_1 < 0)
+			index_1 = length + 1 - index_1;
+
+		if (index_2 < 0)
+			index_2 = length + 1 - index_2;
+
+		int start, end;
+		if (index_1 < index_2) {
+			start = index_1;
+			end = index_2;
+		} else {
+			start = index_2;
+			end = index_1;
+		}
+
+		var color = Settings.get_default ().selection_background;
+		var background = Pango.attr_background_new ((uint16) (65535/color.red), (uint16) (65535/color.green), (uint16) (65535/color.blue));
+		background.start_index = start;
+		background.end_index = end;
+
+		color = Settings.get_default ().selection_foreground;
+		var foreground = Pango.attr_foreground_new ((uint16) (65535/color.red), (uint16) (65535/color.green), (uint16) (65535/color.blue));
+		foreground.start_index = start;
+		foreground.end_index = end;
+
+		var attrs = layout.get_attributes();
+		attrs.insert(background.copy());
+		attrs.insert(foreground.copy());
+		layout.set_attributes(attrs);
+		text_container.queue_draw();
+	}
+
+	public void clear_selection () {
+		text_container.set_markup(markup);
+	}
+
+	public int get_index_by_xy(int x, int y) {
+		int index, trailing;
+		translate_coordinates(text_container, x, y, out x, out y);
+		text_container.get_layout ().xy_to_index (x*Pango.SCALE, y*Pango.SCALE,
+			out index, out trailing);
+		return Utilities.byte_index_to_character_index(output_line.get_text(), index);
 	}
 
 	public void get_character_coordinates(int index, out int x, out int y) {
@@ -70,12 +113,14 @@ public class LineView : Box {
 		y = graph.y/Pango.SCALE + box.y;
 	}
 
-	private bool on_text_container_motion_event(Gdk.EventMotion event) {
+	public bool on_parent_motion_event(Widget src, Gdk.EventMotion event) {
+		int x, y;
+		src.translate_coordinates(text_container, (int) event.x, (int) event.y , out x, out y);
 		int byte_index;
 		int trailing;
 		if (text_container.get_layout().xy_to_index(
-				(int) (event.x - text_container.margin_left) * Pango.SCALE,
-				(int) event.y * Pango.SCALE,
+				(x - text_container.margin_left) * Pango.SCALE,
+				y * Pango.SCALE,
 				out byte_index, out trailing)) {
 
 			var character_index = Utilities.byte_index_to_character_index(
@@ -154,7 +199,8 @@ public class LineView : Box {
 				 	Settings.get_default().theme.collapse_button_x :
 				 Settings.get_default().theme.gutter_size);
 
-		text_container.set_markup(get_markup(output_line));
+		markup = get_markup(output_line);
+		text_container.set_markup(markup);
 	}
 
 	private void update_collapse_button() {

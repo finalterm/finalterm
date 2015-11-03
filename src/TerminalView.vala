@@ -102,14 +102,13 @@ public class TerminalOutputView : ScrolledWindow {
 
 	public bool is_active { get; set; }
 
-	private Label cursor;
-
 	private Terminal terminal;
-
 	private LineContainer line_container;
+	private SelectionManager selection_manager;
 
 	private MenuButton menu_button;
 	private Label menu_button_label;
+	private Label cursor;
 
 	private Gee.Set<int> updated_lines = new Gee.HashSet<int>();
 
@@ -172,6 +171,11 @@ public class TerminalOutputView : ScrolledWindow {
 			else
 				cursor.hide();
 		});
+	}
+
+	public void bind_selection(Widget events) {
+		selection_manager = new SelectionManager (line_container, events,
+									vadjustment, hadjustment);
 	}
 
 	// Expands the list of line views until it contains as many elements as the model
@@ -405,6 +409,7 @@ public class LineContainer : Box {
 	}
 
 	public void add_line_view(LineView line_view) {
+		line_view.line_number = line_views.size;
 		line_views.add(line_view);
 		add (line_view);
 		line_view.show_all ();
@@ -412,6 +417,17 @@ public class LineContainer : Box {
 
 	public LineView get_line_view(int index) {
 		return line_views[index];
+	}
+
+	public int? get_line_index_by_y (int y) {
+		for (var i = 0; i < line_views.size; i++) {
+			Allocation box;
+			line_views[i].get_allocation (out box);
+			if (box.y < y && y < box.y + box.height)
+				return i;
+		}
+
+		return -1;
 	}
 
 	public int get_line_view_index(LineView line_view) {

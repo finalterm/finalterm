@@ -67,6 +67,7 @@ public class TerminalWidget : Gtk.EventBox, NestingContainerChild {
 
 		terminal_view = new TerminalView(terminal);
 		terminal.terminal_view = terminal_view;
+		terminal_view.terminal_output_view.bind_selection(this);
 		add (terminal_view);
 
 		var inactive_effect = new Gtk.DrawingArea ();
@@ -91,9 +92,6 @@ public class TerminalWidget : Gtk.EventBox, NestingContainerChild {
 
 			terminal_view.terminal_output_view.is_active = is_active;
 		});
-
-		configure_event.connect(on_configure_event);
-		button_press_event.connect(on_button_press_event);
 	}
 
 	protected override void get_preferred_width(out int minimum_width, out int natural_width) {
@@ -128,7 +126,7 @@ public class TerminalWidget : Gtk.EventBox, NestingContainerChild {
 		return terminal.terminal_output.terminal_modes;
 	}
 
-	private bool on_configure_event(Gdk.EventConfigure event) {
+	public override bool configure_event(Gdk.EventConfigure event) {
 		// Reposition autocompletion popup when window is moved or resized
 		// to make it "stick" to the prompt line
 		if (FinalTerm.autocompletion.is_popup_visible()) {
@@ -138,7 +136,7 @@ public class TerminalWidget : Gtk.EventBox, NestingContainerChild {
 		return false;
 	}
 
-	private bool on_button_press_event(Gdk.EventButton event) {
+	public override bool button_press_event(Gdk.EventButton event) {
 		if (event.type == Gdk.EventType.BUTTON_PRESS && event.button == 1) {
 			// Left mouse button pressed
 			is_active = true;
