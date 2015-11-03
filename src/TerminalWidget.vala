@@ -189,6 +189,15 @@ public class TerminalWidget : Gtk.EventBox, NestingContainerChild {
 		});
 		context_menu.append(menu_item);
 
+		var selection = terminal_view.terminal_output_view.get_selection();
+		if (selection.length > 0) {
+			menu_item = new Gtk.MenuItem.with_label(_("Copy"));
+			menu_item.activate.connect(() => {
+				Utilities.set_clipboard_text(selection);
+			});
+			context_menu.append(menu_item);
+		}
+
 		context_menu.append(new Gtk.SeparatorMenuItem());
 
 		menu_item = new Gtk.MenuItem.with_label(_("Close"));

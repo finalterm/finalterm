@@ -50,6 +50,10 @@ public class LineView : Box {
 		Settings.get_default().changed.connect(on_settings_changed);
 	}
 
+	public string get_text () {
+		return text_container.get_text();
+	}
+
 	public void set_selection (int index_1, int index_2) {
 		var layout = text_container.get_layout();
 		var length = layout.get_character_count ();

@@ -178,6 +178,10 @@ public class TerminalOutputView : ScrolledWindow {
 									vadjustment, hadjustment);
 	}
 
+	public string get_selection() {
+		return selection_manager.get_text();
+	}
+
 	// Expands the list of line views until it contains as many elements as the model
 	public void add_line_views() {
 		for (int i = line_container.get_line_count(); i < terminal.terminal_output.size; i++) {

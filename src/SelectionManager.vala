@@ -38,7 +38,18 @@ public class SelectionManager : Object {
 		events.button_release_event.connect(on_button_release_event);
 	}
 
+	public string get_text()
+	{
+		if (selection != null)
+			return selection.get_text();
+
+		return "";
+	}
+
 	private bool on_button_press_event(Gdk.EventButton event) {
+		if (event.type != Gdk.EventType.BUTTON_PRESS || event.button != 1)
+			return false;
+
 		if (selection != null)
 			selection.clear ();
 
@@ -120,6 +131,37 @@ public class SelectionManager : Object {
 				line.clear_selection();
 
 			lines.clear();
+		}
+
+		public string get_text () {
+			var text = "";
+			switch(type) {
+				case SelectionType.LINE:
+					var first = lines[0];
+					var last = lines[lines.size-1];
+					string last_text = "";
+					if (first.line_number < last.line_number) {
+						text += first.get_text()[start:-1]+"\n";
+						last_text = last.get_text()[0:end];
+					} else if (first.line_number > last.line_number) {
+						text += first.get_text()[0:start]+"\n";
+						last_text = last.get_text()[end:-1];
+					} else
+						text += first.get_text()[start:end]+"\n";
+
+					for (var i = 1; i < lines.size-1; i++)
+						text += lines[i].get_text ()+"\n";
+
+					text += last_text;
+					break;
+
+				case SelectionType.COLUMN:
+					for (var i = 0; i < lines.size; i++)
+						text += lines[i].get_text()[start:end]+"\n";
+					break;
+			}
+
+			return text;
 		}
 
 		public void highlight () {
