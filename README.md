@@ -6,6 +6,7 @@ I have made the decision to pickup development on Final Term. Step one was to re
 
 * Remove Clutter and Mx.
 * Selection and copy.
+* Click to move cursor.
 
 
 # About Final Term
