@@ -373,7 +373,8 @@ public class TerminalOutputView : ScrolledWindow {
 		// 	// LineView padding
 			Settings.get_default().theme.gutter_size +
 				Settings.get_default().theme.margin_left +
-				Settings.get_default().theme.margin_right;
+				Settings.get_default().theme.margin_right +
+				Settings.get_default().character_width;
 	}
 
 	public int get_vertical_padding() {

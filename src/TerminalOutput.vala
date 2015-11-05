@@ -115,8 +115,13 @@ public class TerminalOutput : Gee.ArrayList<OutputLine> {
 			// http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
 			switch (stream_element.control_sequence_type) {
 			case TerminalStream.StreamElement.ControlSequenceType.CARRIAGE_RETURN:
-				// Move cursor to the left margin on the current line
-				move_cursor(cursor_position.line, 0);
+				// Wrap long command lines
+				if (command_mode && cursor_position.column-1 == terminal.columns)
+					// Move cursor to the left margin on the next line
+					move_cursor(cursor_position.line+1, 0);
+				else
+					// Move cursor to the left margin on the current line
+					move_cursor(cursor_position.line, 0);
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.FORM_FEED:

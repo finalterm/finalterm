@@ -48,7 +48,7 @@ preexec() {
 preexec_install
 
 # Send sequence marking the start of a command
-PS1=$PS1$(final_term_control_sequence 'B')
+PS1="$PS1\[$(final_term_control_sequence 'B')\]"
 
 
 # Logic for terminal commands
