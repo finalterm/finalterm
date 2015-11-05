@@ -234,6 +234,7 @@ public class Settings : Object {
 
 		var css = @"
 .cursor {
+	font: $terminal_font_name;
 	background-color: $from;
 	animation-name: blink;
 	animation-duration: $(theme.cursor_blinking_interval)ms;
