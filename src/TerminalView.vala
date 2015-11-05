@@ -116,6 +116,7 @@ public class TerminalOutputView : ScrolledWindow {
 		this.terminal = terminal;
 
 		line_container = new LineContainer();
+		line_container.size_allocate.connect ((box) => scroll_to_position());
 		add(line_container);
 
 		// Initial synchronization with model

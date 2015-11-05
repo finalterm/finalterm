@@ -99,14 +99,6 @@ public class Terminal : Object {
 
 	private void on_output_line_added() {
 		terminal_view.terminal_output_view.add_line_views();
-
-		// Schedule autoscroll with low priority to ensure it is performed
-		// only after all layout changes triggered by adding the new line
-		// are complete
-		// TODO: Add information about instance to key
-		Utilities.schedule_execution(() => {
-			terminal_view.terminal_output_view.scroll_to_position();
-		}, "scroll_to_position", 0, Priority.DEFAULT_IDLE);
 	}
 
 	private void on_output_line_updated(int line_index) {
