@@ -174,7 +174,7 @@ public class TerminalOutputView : ScrolledWindow {
 	}
 
 	public void bind_selection(Widget events) {
-		selection_manager = new SelectionManager (line_container, events,
+		selection_manager = new SelectionManager (terminal, line_container, events,
 									vadjustment, hadjustment);
 	}
 

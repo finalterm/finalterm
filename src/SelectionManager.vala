@@ -22,13 +22,17 @@
  */
 public class SelectionManager : Object {
 	private Selection selection;
+	private Terminal terminal;
 	private LineContainer line_container;
 	private Gtk.Widget events;
 	private Gtk.Adjustment voffset;
 	private Gtk.Adjustment hoffset;
 
-	public SelectionManager(LineContainer line_container, Gtk.Widget events,
+	private bool drag;
+
+	public SelectionManager(Terminal terminal, LineContainer line_container, Gtk.Widget events,
 						Gtk.Adjustment voffset, Gtk.Adjustment hoffset) {
+		this.terminal = terminal;
 		this.line_container = line_container;
 		this.events = events;
 		this.voffset = voffset;
@@ -60,12 +64,14 @@ public class SelectionManager : Object {
 		if (line_number < 0)
 			return false;
 
+		drag = false;
 		selection = new Selection ();
 		if (event.state == Gdk.ModifierType.SHIFT_MASK)
 			selection.type = Selection.SelectionType.COLUMN;
 
 		var line = line_container.get_line_view(line_number);
 		line_container.translate_coordinates (line, x, y, out x, out y);
+
 		switch (event.type) {
 			case Gdk.EventType.BUTTON_PRESS:
 				selection.start = line.get_index_by_xy (x, y);
@@ -93,6 +99,7 @@ public class SelectionManager : Object {
 	}
 
 	private bool on_motion_notify_event(Gdk.EventMotion event) {
+		drag = true;
 		var x = (int) (event.x + hoffset.value);
 		var y = (int) (event.y + voffset.value);
 		
@@ -130,6 +137,25 @@ public class SelectionManager : Object {
 	private bool on_button_release_event(Gdk.EventButton event) {
 		if (selection != null)
 			selection.done = true;
+
+		if (drag)
+			return false;
+
+		// Move cursor with mouse
+		var mark = terminal.terminal_output.command_start_position;
+		if (mark.line != selection.lines[0].line_number)
+			return false;
+
+		var index = selection.start;
+		if (index < mark.column)
+			index = mark.column;
+
+		index -= terminal.terminal_output.cursor_position.column;
+
+		if (index > 0)
+			terminal.send_text (Utilities.repeat_string("\033[C", index));
+		else
+			terminal.send_text (Utilities.repeat_string("\033[D", index.abs()));
 
 		return false;
 	}
