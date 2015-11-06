@@ -54,6 +54,48 @@ public class TerminalOutput : Gee.ArrayList<OutputLine> {
 	// not its position on the screen
 	public CursorPosition cursor_position = CursorPosition();
 
+	// Character Sets
+	private Gee.Map<unichar,unichar> graphics_set = new Gee.HashMap<unichar, unichar>();
+	private Gee.Map<unichar,unichar> default_set = new Gee.HashMap<unichar, unichar>();
+
+	private Gee.Map<unichar,unichar> active_character_set;
+	private void load_character_sets() {
+		graphics_set['`'] = 0x2666;
+		graphics_set['a'] = 0x1F67E;
+		graphics_set['b'] = 0x0009;
+		graphics_set['c'] = 0x000C;
+		graphics_set['d'] = 0x000D;
+		graphics_set['e'] = 0x000A;
+		graphics_set['f'] = 0x2218;
+		// graphics_set['g'] = ;
+		// graphics_set['h'] = ;
+		graphics_set['i'] = 0x000B;
+		graphics_set['j'] = 0x2518;
+		graphics_set['k'] = 0x2510;
+		graphics_set['l'] = 0x250C;
+		graphics_set['m'] = 0x2514;
+		graphics_set['n'] = 0x253B;
+		graphics_set['o'] = 0x23BA;
+		graphics_set['p'] = 0x23BB;
+		graphics_set['q'] = 0x2500;
+		graphics_set['r'] = 0x23BC;
+		graphics_set['s'] = 0x23BD;
+		graphics_set['t'] = 0x251C;
+		graphics_set['u'] = 0x2524;
+		graphics_set['v'] = 0x2533;
+		graphics_set['w'] = 0x252B;
+		graphics_set['x'] = 0x2502;
+		graphics_set['y'] = 0x2A7D;
+		graphics_set['z'] = 0x2A7E;
+		graphics_set['{'] = 0x03C0;
+		graphics_set['|'] = 0x2260;
+		graphics_set['}'] = 0x2265;
+		graphics_set['~'] = 0x22C5;
+
+		active_character_set = default_set;
+	}
+
+
 	public struct CursorPosition {
 		public int line;
 		public int column;
@@ -77,6 +119,7 @@ public class TerminalOutput : Gee.ArrayList<OutputLine> {
 	public CursorPosition command_start_position;
 
 	public TerminalOutput(Terminal terminal) {
+		load_character_sets();
 		this.terminal = terminal;
 
 		// Default attributes
@@ -357,6 +400,14 @@ public class TerminalOutput : Gee.ArrayList<OutputLine> {
 
 			case TerminalStream.StreamElement.ControlSequenceType.DESIGNATE_G0_CHARACTER_SET_VT100:
 				// The program "top" emits this sequence repeatedly
+				switch (stream_element.text[stream_element.text.length-1]) {
+					case 'B':
+						active_character_set = default_set;
+						break;
+					case '0':
+						active_character_set = graphics_set;
+						break;
+				}
 				//print_interpretation_status(stream_element, InterpretationStatus.UNSUPPORTED);
 				break;
 
@@ -563,7 +614,12 @@ public class TerminalOutput : Gee.ArrayList<OutputLine> {
 	}
 
 	private void print_text(string text) {
-		var text_element = new TextElement(text, current_attributes);
+		var translated = "";
+		// foreach(char c in text.data)
+		for(var i = 0; i < text.length; i++)
+			translated += active_character_set.has_key(text[i]) ? active_character_set[text[i]].to_string () : text[i].to_string ();
+
+		var text_element = new TextElement(translated, current_attributes);
 		get(cursor_position.line).insert_element(text_element, cursor_position.column, true);
 		// TODO: Handle double-width unicode characters and tabs
 		move_cursor(cursor_position.line, cursor_position.column + text_element.get_length());

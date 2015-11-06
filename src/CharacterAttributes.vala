@@ -315,6 +315,12 @@ public class CharacterAttributes : Object {
 					color1 = color_scheme.get_foreground_color(dark);
 				} else {
 					color1 = color_scheme.get_indexed_color(foreground_color, dark);
+					if (bold) {
+						color1.red = (color1.red + 0.1).clamp(0.0, 1.0);
+						color1.green = (color1.green + 0.1).clamp(0.0, 1.0);
+						color1.blue = (color1.blue + 0.1).clamp(0.0, 1.0);
+					}
+
 				}
 			}
 
