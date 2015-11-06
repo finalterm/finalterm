@@ -30,10 +30,8 @@ public class TerminalView : Fixed {
 
 	public TerminalOutputView terminal_output_view;
 
-	private Box status_container;
 	private ProgressBar progress_bar;
 	private Label progress_label;
-	private Label progress_label_shadow;
 
 	public TerminalView(Terminal terminal) {
 		this.terminal = terminal;
@@ -42,7 +40,7 @@ public class TerminalView : Fixed {
 		gutter.get_style_context ().add_class ("gutter");
 		put(gutter, 0, 0);
 
-		var box = new Box (Orientation.VERTICAL, 0);
+		var box = new Box (Orientation.VERTICAL, 5);
 		put (box, 0, 0);
 		
 		size_allocate.connect((alloc) => {
@@ -64,33 +62,24 @@ public class TerminalView : Fixed {
 		terminal_output_view = new TerminalOutputView(terminal);
 		box.pack_start(terminal_output_view, true, true);
 
-		status_container = new Box(Orientation.HORIZONTAL, 0);
-
-		progress_bar = new ProgressBar();
-		status_container.pack_start(progress_bar, true, true);
-
-		progress_label_shadow = new Label("");
-		progress_label_shadow.get_style_context ().add_class ("progress-label-shadow");
-		status_container.add(progress_label_shadow);
 		progress_label = new Label("");
 		progress_label.get_style_context ().add_class ("progress-label");
-		status_container.add(progress_label);
-		status_container.no_show_all = true;
-
-		box.add(status_container);
-
+		box.add(progress_label);
+		progress_bar = new ProgressBar();
+		progress_bar.no_show_all = true;
+		box.add(progress_bar);
 	}
 
 	public void show_progress(int percentage, string label = "") {
-		status_container.show ();
-		progress_bar.show ();
+		progress_bar.show();
+		progress_label.show();
 		progress_label.label = label;
-		progress_label_shadow.label = label;
 		progress_bar.fraction = (double)percentage / 100.0;
 	}
 
 	public void hide_progress() {
-		status_container.hide ();
+		progress_bar.hide();
+		progress_label.hide();
 	}
 
 	public bool window_has_focus() {
@@ -118,6 +107,7 @@ public class TerminalOutputView : ScrolledWindow {
 		line_container = new LineContainer();
 		line_container.size_allocate.connect ((box) => scroll_to_position());
 		add(line_container);
+		((Viewport)get_children().nth_data(0)).shadow_type = ShadowType.NONE;
 
 		// Initial synchronization with model
 		add_line_views();

@@ -55,7 +55,7 @@ public class Terminal : Object {
 		terminal_output.command_finished.connect(on_output_command_finished);
 #endif
 		terminal_output.progress_updated.connect(on_output_progress_updated);
-		// terminal_output.progress_finished.connect(on_output_progress_finished);
+		terminal_output.progress_finished.connect(on_output_progress_finished);
 		terminal_output.cursor_position_changed.connect(on_output_cursor_position_changed);
 
 		initialize_pty();
