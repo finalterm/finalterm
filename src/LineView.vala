@@ -46,8 +46,7 @@ public class LineView : Box {
 		text_container.wrap_mode = Pango.WrapMode.CHAR;
 		pack_start(text_container, false, false);
 
-		on_settings_changed(null);
-		Settings.get_default().changed.connect(on_settings_changed);
+		Settings.get_default().changed.connect((key) => render_line());
 	}
 
 	public string get_text () {
@@ -157,13 +156,14 @@ public class LineView : Box {
 		output_line = original_output_line.generate_text_menu_elements();
 
 		if (is_prompt_line && collapse_button == null) {
+			get_style_context().add_class("prompt-line");
+			line_container.set_child_packing(this, false, false, 10, PackType.START);
+
 			// Collapse button has not been created yet
-			collapse_button = new ToggleButton.with_label("●");
+			collapse_button = new ToggleButton.with_label("  \u1433 ");
 
 			collapse_button.get_style_context ().add_class ("collapse-button");
 			collapse_button.clicked.connect(on_collapse_button_clicked);
-
-			update_collapse_button();
 
 			pack_start (collapse_button, false, false);
 			reorder_child (collapse_button, 0);
@@ -174,14 +174,6 @@ public class LineView : Box {
 				collapse_button.show ();
 			else
 				collapse_button.hide ();
-
-			if (is_collapsible()) {
-				if (collapse_button.active) {
-					collapse_button.set_label("▶");
-				} else {
-					collapse_button.set_label("▼");
-				}
-			}
 		}
 
 		if (is_prompt_line) {
@@ -194,29 +186,12 @@ public class LineView : Box {
 			}
 		}
 
-		// If the collapse button is visible, the text container will
-		// already be pushed to the left, so we need to subtract that
-		text_container.margin_left = Settings.get_default().theme.margin_left +
-				(is_prompt_line ?
-				 Settings.get_default().theme.gutter_size -
-				 	Settings.get_default().theme.collapse_button_width -
-				 	Settings.get_default().theme.collapse_button_x :
-				 Settings.get_default().theme.gutter_size);
-
 		markup = get_markup(output_line);
 		text_container.set_markup(markup);
 	}
 
-	private void update_collapse_button() {
-		collapse_button.set_size_request (
-			Settings.get_default().theme.collapse_button_width,
-			Settings.get_default().theme.collapse_button_height
-		);
-	}
-
 	private string get_markup(TerminalOutput.OutputLine output_line) {
 		var markup_builder = new StringBuilder();
-
 		foreach (var text_element in output_line) {
 			var text_attributes = text_element.attributes.get_text_attributes(
 					Settings.get_default().color_scheme, Settings.get_default().dark);
@@ -236,20 +211,13 @@ public class LineView : Box {
 		return markup_builder.str;
 	}
 
-	private void on_settings_changed(string? key) {
-		if (collapse_button != null)
-			update_collapse_button();
-
-		render_line();
-	}
-
 	private void on_collapse_button_clicked() {
 		if (is_collapsible()) {
 			if (collapse_button.active) {
-				collapse_button.set_label("▶");
+				collapse_button.set_label(" \u2015 ");
 				collapsed(this);
 			} else {
-				collapse_button.set_label("▼");
+				collapse_button.set_label("  \u1433 ");
 				expanded(this);
 			}
 		}

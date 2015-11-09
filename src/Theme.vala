@@ -28,11 +28,6 @@ public class Theme : Object {
 
 	public int gutter_size { get; set; }
 
-	public int collapse_button_x { get; set; }
-	public int collapse_button_y { get; set; }
-	public int collapse_button_width { get; set; }
-	public int collapse_button_height { get; set; }
-
 	public Gdk.RGBA menu_button_arrow_color { get; set; }
 
 	public int margin_left { get; set; }
@@ -61,11 +56,6 @@ public class Theme : Object {
 			Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(), style, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
 
 			gutter_size = theme_file.get_integer("Theme", "gutter-size");
-
-			collapse_button_x = theme_file.get_integer("Theme", "collapse-button-x");
-			collapse_button_y = theme_file.get_integer("Theme", "collapse-button-y");
-			collapse_button_width = theme_file.get_integer("Theme", "collapse-button-width");
-			collapse_button_height = theme_file.get_integer("Theme", "collapse-button-height");
 
 			menu_button_arrow_color = Gdk.RGBA();
 			menu_button_arrow_color.parse(theme_file.get_string("Theme", "menu-button-arrow-color"));

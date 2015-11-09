@@ -48,6 +48,34 @@ public class SettingsWindow : Gtk.Dialog {
 		dimensions_rows.pack_start(rows, false);
 		dimensions_rows.pack_start(new Gtk.Label(_("rows")), false);
 
+		var status_bar_left = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 6);
+		var left = new Gtk.Entry ();
+		left.text = Settings.get_default().status_bar_left;
+		left.changed.connect(() => {
+			Settings.get_default().status_bar_left = left.text;
+		});
+		status_bar_left.pack_start(left, false);
+		status_bar_left.pack_start(new Gtk.Label(_("Left")), false);
+
+		var status_bar_middle = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 6);
+		var middle = new Gtk.Entry ();
+		middle.text = Settings.get_default().status_bar_middle;
+		middle.changed.connect(() => {
+			Settings.get_default().status_bar_middle = middle.text;
+		});
+		status_bar_middle.pack_start(middle, false);
+		status_bar_middle.pack_start(new Gtk.Label(_("Middle")), false);
+
+		var status_bar_right = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 6);
+		var right = new Gtk.Entry ();
+		right.text = Settings.get_default().status_bar_right;
+		right.changed.connect(() => {
+			Settings.get_default().status_bar_right = right.text;
+		});
+		status_bar_right.pack_start(right, false);
+		status_bar_right.pack_start(new Gtk.Label(_("Right")), false);
+
+
 		var terminal_font = new Gtk.FontButton();
 		terminal_font.use_font = true;
 		// Restrict selection to monospaced fonts
@@ -109,26 +137,31 @@ public class SettingsWindow : Gtk.Dialog {
 		grid.attach(dimensions_columns, 1, 1, 1, 1);
 		grid.attach(dimensions_rows, 1, 2, 1, 1);
 
-		grid.attach(create_header(_("Appearance")), 0, 3, 1, 1);
+		grid.attach(create_label(_("Status Bar:")), 0, 3, 1, 1);
+		grid.attach(status_bar_left, 1, 3, 1, 1);
+		grid.attach(status_bar_middle, 1, 4, 1, 1);
+		grid.attach(status_bar_right, 1, 5, 1, 1);
 
-		grid.attach(create_label(_("Terminal font:")), 0, 4, 1, 1);
-		grid.attach(terminal_font, 1, 4, 1, 1);
+		grid.attach(create_header(_("Appearance")), 0, 6, 1, 1);
 
-		grid.attach(create_label(_("Label font:")), 0, 5, 1, 1);
-		grid.attach(label_font, 1, 5, 1, 1);
+		grid.attach(create_label(_("Terminal font:")), 0, 7, 1, 1);
+		grid.attach(terminal_font, 1, 7, 1, 1);
 
-		grid.attach(create_label(_("Dark look:")), 0, 6, 1, 1);
-		grid.attach(dark_look, 1, 6, 1, 1);
+		grid.attach(create_label(_("Label font:")), 0, 8, 1, 1);
+		grid.attach(label_font, 1, 8, 1, 1);
 
-		grid.attach(create_label(_("Color scheme:")), 0, 7, 1, 1);
-		grid.attach(color_scheme, 1, 7, 1, 1);
+		grid.attach(create_label(_("Dark look:")), 0, 9, 1, 1);
+		grid.attach(dark_look, 1, 9, 1, 1);
 
-		grid.attach(create_label(_("Theme:")), 0, 8, 1, 1);
-		grid.attach(theme, 1, 8, 1, 1);
+		grid.attach(create_label(_("Color scheme:")), 0, 10, 1, 1);
+		grid.attach(color_scheme, 1, 10, 1, 1);
+
+		grid.attach(create_label(_("Theme:")), 0, 11, 1, 1);
+		grid.attach(theme, 1, 11, 1, 1);
 
 		// TODO: This looks ugly (alignment)
-		grid.attach(create_label(_("Opacity:")), 0, 9, 1, 1);
-		grid.attach(opacity, 1, 9, 1, 1);
+		grid.attach(create_label(_("Opacity:")), 0, 12, 1, 1);
+		grid.attach(opacity, 1, 12, 1, 1);
 
 		get_content_area().add(grid);
 	}

@@ -36,10 +36,6 @@ public class TerminalView : Fixed {
 	public TerminalView(Terminal terminal) {
 		this.terminal = terminal;
 
-		var gutter = new DrawingArea ();
-		gutter.get_style_context ().add_class ("gutter");
-		put(gutter, 0, 0);
-
 		var box = new Box (Orientation.VERTICAL, 5);
 		put (box, 0, 0);
 		
@@ -50,13 +46,6 @@ public class TerminalView : Fixed {
 			child.width = alloc.width;
 			child.height = alloc.height;
 			box.size_allocate (child);
-
-			child = Gtk.Allocation ();
-			child.x = 0;
-			child.y = 0;
-			child.width = Settings.get_default().theme.gutter_size;
-			child.height = alloc.height;
-			gutter.size_allocate (child);
 		});
 
 		terminal_output_view = new TerminalOutputView(terminal);
@@ -68,6 +57,8 @@ public class TerminalView : Fixed {
 		progress_bar = new ProgressBar();
 		progress_bar.no_show_all = true;
 		box.add(progress_bar);
+
+		box.add(new StatusBar(terminal));
 	}
 
 	public void show_progress(int percentage, string label = "") {
@@ -362,7 +353,6 @@ public class TerminalOutputView : ScrolledWindow {
 		// 	// Scrollbar width + padding (see style.css)
 		// 	14 +
 		// 	// LineView padding
-			Settings.get_default().theme.gutter_size +
 				Settings.get_default().theme.margin_left +
 				Settings.get_default().theme.margin_right +
 				Settings.get_default().character_width;

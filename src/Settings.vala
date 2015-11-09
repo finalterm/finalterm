@@ -155,6 +155,25 @@ public class Settings : Object {
 		set { settings.set_boolean("case-sensitive-autocompletion", value); }
 	}
 
+	private string _status_bar_left;
+	public string status_bar_left {
+		get { return _status_bar_left; }
+		set { settings.set_string("status-bar-left", value); }
+	}
+
+	private string _status_bar_middle;
+	public string status_bar_middle {
+		get { return _status_bar_middle; }
+		set { settings.set_string("status-bar-middle", value); }
+	}
+
+	private string _status_bar_right;
+	public string status_bar_right {
+		get { return _status_bar_right; }
+		set { settings.set_string("status-bar-right", value); }
+	}
+
+
 	private void update_cache() {
 		_dark = settings.get_boolean("dark");
 
@@ -190,6 +209,10 @@ public class Settings : Object {
 		_render_interval = settings.get_int("render-interval");
 
 		_case_sensitive_autocompletion = settings.get_boolean("case-sensitive-autocompletion");
+
+		_status_bar_left = settings.get_string("status-bar-left");
+		_status_bar_middle = settings.get_string("status-bar-middle");
+		_status_bar_right = settings.get_string("status-bar-right");
 	}
 
 	public static void load_from_schema(string schema_name) {
@@ -250,21 +273,15 @@ public class Settings : Object {
 
 TerminalWidget
 {
-	background-color: $background_color
+	background-color: $background_color;
 }
 
 LineView {
 	color: $(foreground_color.to_string ());
 	font: $terminal_font_name;
-}
-
-LineView .button {
-	margin-top: $(theme.collapse_button_y)px;
-	margin-left: $(theme.collapse_button_x)px;
-}
-
-LineView .label {
+	margin-left: $(theme.margin_left)px;
 	margin-right: $(theme.margin_right)px;
+	padding: 0;
 }
 ";
 		style.load_from_data (css, css.length);

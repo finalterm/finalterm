@@ -70,5 +70,21 @@
 			<summary>Case-sensitive autocompletion</summary>
 			<description></description>
 		</key>
+		<key type="s" name="status-bar-left">
+			<default>'\\w'</default>
+			<summary>Prompt escaped string to display on the left of the status bar.</summary>
+			<description></description>
+		</key>
+		<key type="s" name="status-bar-middle">
+			<default>'\\T \\d'</default>
+			<summary>Prompt escaped string to display in the middle of the status bar.</summary>
+			<description></description>
+		</key>
+		<key type="s" name="status-bar-right">
+			<default>''</default>
+			<summary>Prompt escaped string to display on the right of the status bar.</summary>
+			<description></description>
+		</key>
+
 	</schema>
 </schemalist>

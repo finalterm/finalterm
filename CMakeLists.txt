@@ -76,6 +76,7 @@ vala_precompile(VALA_C
 	src/Settings.vala
 	src/Metrics.vala
 	src/SelectionManager.vala
+	src/StatusBar.vala
 PACKAGES
 	${PKGS}
 	posix

@@ -113,6 +113,9 @@ public class TerminalOutput : Gee.ArrayList<OutputLine> {
 	private string transient_text = "";
 	private string printed_transient_text = "";
 
+	private bool capturing_prompt = false;
+	private OutputLine prompt;
+
 	public string last_command = "";
 
 	public bool command_mode = false;
@@ -431,10 +434,14 @@ public class TerminalOutput : Gee.ArrayList<OutputLine> {
 
 			case TerminalStream.StreamElement.ControlSequenceType.FTCS_PROMPT:
 				get(cursor_position.line).is_prompt_line = true;
-				line_updated(cursor_position.line);
-				break;
 
+				capturing_prompt = true;
+				prompt = new OutputLine();
+				break;
 			case TerminalStream.StreamElement.ControlSequenceType.FTCS_COMMAND_START:
+				capturing_prompt = false;
+				set_prompt(prompt);
+
 				if (command_mode)
 					// TODO: This can happen with malformed multi-line commands
 					warning(_("Command start control sequence received while already in command mode"));
@@ -615,14 +622,18 @@ public class TerminalOutput : Gee.ArrayList<OutputLine> {
 
 	private void print_text(string text) {
 		var translated = "";
-		// foreach(char c in text.data)
 		for(var i = 0; i < text.length; i++)
 			translated += active_character_set.has_key(text[i]) ? active_character_set[text[i]].to_string () : text[i].to_string ();
 
 		var text_element = new TextElement(translated, current_attributes);
-		get(cursor_position.line).insert_element(text_element, cursor_position.column, true);
-		// TODO: Handle double-width unicode characters and tabs
-		move_cursor(cursor_position.line, cursor_position.column + text_element.get_length());
+
+		if (capturing_prompt) {
+			prompt.insert_element(text_element, cursor_position.column+prompt.get_length (), true);
+		} else {
+			get(cursor_position.line).insert_element(text_element, cursor_position.column, true);
+			// TODO: Handle double-width unicode characters and tabs
+			move_cursor(cursor_position.line, cursor_position.column + text_element.get_length());
+		}
 	}
 
 	private void on_line_updated(int line_index) {
@@ -734,6 +745,8 @@ public class TerminalOutput : Gee.ArrayList<OutputLine> {
 		get(line).erase_range(start_position, end_position);
 		line_updated(line);
 	}
+
+	public signal void set_prompt(OutputLine prompt);
 
 	public signal void line_added();
 
