@@ -7,6 +7,7 @@ I have made the decision to pickup development on Final Term. Step one was to re
 * Remove Clutter and Mx.
 * Selection and copy.
 * Click to move cursor.
+* Status bar with prompt escapes.
 * Bug fixes.
 
 
