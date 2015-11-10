@@ -70,6 +70,8 @@ public class StatusBar : Box {
 		if (this.cwd != null && this.cwd != cwd) {
 			var item = new Gtk.MenuItem.with_label(this.cwd);
 			menu.add(item);
+			var dir = this.cwd;
+			item.activate.connect(() => terminal.send_text(dir));
 			item.show_all();
 			this.cwd = null;
 		}
