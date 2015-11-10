@@ -30,56 +30,59 @@ public class StatusBar : Box {
 	private Label middle;
 	private Label right;
 
+	private Gee.List<string> dirstack;
+	private Gtk.Menu menu;
+	private string? cwd;
+
 	public StatusBar(Terminal terminal) {
 		get_style_context().add_class("status-bar");
 		this.terminal = terminal;
+		homogeneous = true;
 
-		left = new Label ("left");
+		dirstack = new Gee.ArrayList<string>();
+		menu = new Gtk.Menu ();
+		menu.halign = Align.END;
+		var button = new MenuButton ();
+		pack_start(button, true, true);
+		button.direction = ArrowType.UP;
+		button.popup = menu;
+
+		left = new Label ("");
 		left.use_markup = true;
 		left.halign = Align.START;
-		pack_start(left, true, true);
+		button.add(left);
 
-		middle = new Label ("middle");
-		left.use_markup = true;
+		middle = new Label ("");
+		middle.use_markup = true;
 		middle.halign = Align.CENTER;
 		pack_start(middle, true, true);
 
-		right = new Label ("right");
-		left.use_markup = true;
+		right = new Label ("");
+		right.use_markup = true;
 		right.halign = Align.END;
 		pack_start(right, true, true);
 
-		// terminal.terminal_output.prompt_line.connect(render);
 		terminal.terminal_output.set_prompt.connect(render);
 	}
 
 	private void render (TerminalOutput.OutputLine prompt) {
+		var cwd = terminal.get_cwd ();
+		if (this.cwd != null && this.cwd != cwd) {
+			var item = new Gtk.MenuItem.with_label(this.cwd);
+			menu.add(item);
+			item.show_all();
+			this.cwd = null;
+		}
+
+		if (cwd != "" && dirstack.index_of(cwd) == -1) {
+			this.cwd = cwd;
+			dirstack.add(cwd);
+		}
+
 		var markup = get_markup(prompt);
 		left.label = markup[0:markup.index_of(":middle:")];
 		middle.label = markup[markup.index_of(":middle:")+8:markup.index_of(":right:")];
 		right.label = markup[markup.index_of(":right:")+7:-1];
-		stdout.puts(prompt.get_text());
-	}
-
-	// private void render (int prompt_line) {
-	// 	left.label = unescape(Settings.get_default ().status_bar_left);
-	// 	// middle.label = ;
-	// 	// right.label = ;
-	// }
-
-	private string unescape(string text) {
-		// var now = new DateTime.now_local();
-		// var cwd = terminal.get_cwd ();
-		// var processed = text.replace("\a", "\007");
-		// var processed = text.replace("\d", now.format("%a %b %d"));
-		// var processed = text.replace("\t", now.format("%T"));
-		// var processed = text.replace("\T", now.format("%I:%M:%S"));
-		// var processed = text.replace("\@", now.format("%P"));
-		// var processed = text.replace("\w", cwd);
-		// var processed = text.replace("\W", cwd[cwd.last_index_of("/")+1:-1]);
-
-		// return processed;
-		return text;
 	}
 
 	private string get_markup(TerminalOutput.OutputLine output_line) {

@@ -19,10 +19,26 @@ GtkPaned {
 
 .status-bar {
   background-color: rgb(35,35,40);
+  color: #AAAAAA;
 }
 
 .status-bar .label {
   padding: 8px;
+}
+
+.status-bar .menu-button {
+  background-color: transparent;
+  background-image: none;
+  border-width: 0;
+  border-image: none;
+}
+
+.status-bar .menu-button .label {
+  color: #AAAAAA;
+}
+
+.status-bar .menu .label {
+  padding: 1px;
 }
 
 .collapse-button {
@@ -35,7 +51,6 @@ GtkPaned {
   border-width: 0px;
   border-image: none;
 }
-
 
 .collapse-button:hover {
   color: rgba(255, 255, 255, 0.8);

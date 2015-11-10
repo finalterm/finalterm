@@ -39,6 +39,14 @@ public class Terminal : Object {
 	// – an ugly necessity because of Vala's closure limitations
 	private static Gee.Map<int, Terminal> terminals_by_pid = new Gee.HashMap<int, Terminal>();
 
+	public string? get_cwd() {
+		foreach (var entry in terminals_by_pid.entries)
+			if (entry.value == this)
+				return FileUtils.read_link(@"/proc/$(entry.key)/cwd");
+
+		return null;
+	}
+
 	public Terminal() {
 		lines = Settings.get_default().terminal_lines;
 		columns = Settings.get_default().terminal_columns;
