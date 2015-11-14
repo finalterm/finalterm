@@ -11,7 +11,7 @@ I have made the decision to pickup development on Final Term. Step one was to re
 * Status bar.
   * Prompt escapes.
   * Recent directroies menu.
-* Bug fixes.
+* [Bug fixes](http://github.com/RedHatter/finalterm-reborn/wiki/Bugs/).
 
 
 # About Final Term
