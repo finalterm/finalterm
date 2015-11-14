@@ -165,7 +165,7 @@ public class Utilities : Object {
 		return list;
 	}
 
-	private static Gtk.Clipboard get_clipboard() {
+	public static Gtk.Clipboard get_clipboard() {
 		return Gtk.Clipboard.get_for_display(Gdk.Display.get_default(), Gdk.SELECTION_CLIPBOARD);
 	}
 

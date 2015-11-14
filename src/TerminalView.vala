@@ -83,30 +83,71 @@ public class TerminalOutputView : ScrolledWindow {
 	public bool is_active { get; set; }
 
 	private Terminal terminal;
-	private LineContainer line_container;
-	private SelectionManager selection_manager;
+	private TextView view;
 
 	private MenuButton menu_button;
 	private Label menu_button_label;
 	private Label cursor;
 
-	private Gee.Set<int> updated_lines = new Gee.HashSet<int>();
+	private Gee.Map<int,string> tooltips = new Gee.HashMap<int,string>();
+
 
 	public TerminalOutputView(Terminal terminal) {
 		this.terminal = terminal;
 
-		line_container = new LineContainer();
-		line_container.size_allocate.connect ((box) => scroll_to_position());
-		add(line_container);
-		((Viewport)get_children().nth_data(0)).shadow_type = ShadowType.NONE;
+		view = new TextView.with_buffer (terminal.terminal_output);
+		view.editable = false;
+		view.cursor_visible = false;
+		view.wrap_mode = WrapMode.CHAR;
+		view.motion_notify_event.connect(on_motion_notify_event);
+		view.button_press_event.connect(on_button_press_event);
+		view.has_tooltip = true;
+		view.query_tooltip.connect ((x, y, keyboard_tooltip, tooltip) => {
+			if (keyboard_tooltip)
+				return false;
 
-		// Initial synchronization with model
-		add_line_views();
+			TextIter iter;
+			view.window_to_buffer_coords(TextWindowType.TEXT, x, y, out x, out y);
+			view.get_iter_at_position (out iter, null, x, y);
+			var key = iter.get_offset();
+			if (!tooltips.has_key(key))
+				return false;
+
+			tooltip.set_text(tooltips[key]);
+			return true;
+		});
+		view.show();
+		add(view);
+
+		terminal.terminal_output.create_tag("invisible", "invisible", true);
+		terminal.terminal_output.create_tag("error", "foreground", "#FF0000");
+		terminal.terminal_output.line_added.connect (() => {
+			Utilities.schedule_execution(() =>
+				scroll_to_position(), "scroll_to_position", 0, Priority.DEFAULT_IDLE);
+		});
+		terminal.terminal_output.command_finished.connect((cmd, code) => {
+			if (code == 0)
+				return;
+
+			TextIter iter;
+			var c = terminal.terminal_output.cursor_position;
+			view.buffer.get_iter_at_line_offset(out iter, c.line, c.column);
+			var tag = view.buffer.tag_table.lookup("prompt");
+			iter.backward_to_tag_toggle(tag);
+			var end = iter;
+			iter.backward_char();
+			var text = _("Return code") + ": " + code.to_string();
+			while (iter.has_tag(tag)) {
+				tooltips[iter.get_offset()] = text;
+				if (!iter.backward_char())
+					break;;
+			}
+
+			view.buffer.apply_tag_by_name("error", iter, end);
+		});
 
 		hadjustment.value_changed.connect(() => position_terminal_cursor(false));
 		vadjustment.value_changed.connect(() => position_terminal_cursor(false));
-		hadjustment.changed.connect(() => position_terminal_cursor(false));
-		vadjustment.changed.connect(() => position_terminal_cursor(false));
 
 		menu_button = new MenuButton();
 		menu_button.get_style_context().add_class("menu-button");
@@ -135,6 +176,9 @@ public class TerminalOutputView : ScrolledWindow {
 		// Cursor and menu button need to float above all other children of the TerminalOutputView
 		// so they are added to the parent (TerminalView)
 		parent_set.connect((old_parent) => {
+			if (parent == null)
+				return;
+
 			var fixed = parent.parent as Fixed;
 			if (fixed == null)
 				return;
@@ -155,49 +199,35 @@ public class TerminalOutputView : ScrolledWindow {
 		});
 	}
 
-	public void bind_selection(Widget events) {
-		selection_manager = new SelectionManager (terminal, line_container, events,
-									vadjustment, hadjustment);
-	}
-
-	public string get_selection() {
-		return selection_manager.get_text();
-	}
-
-	// Expands the list of line views until it contains as many elements as the model
-	public void add_line_views() {
-		for (int i = line_container.get_line_count(); i < terminal.terminal_output.size; i++) {
-			var line_view = new LineView(terminal.terminal_output[i], line_container);
-			line_view.collapsed.connect(on_line_view_collapsed);
-			line_view.expanded.connect(on_line_view_expanded);
-			line_view.text_menu_element_hovered.connect(on_line_view_text_menu_element_hovered);
-
-			line_container.add_line_view(line_view);
-		}
-	}
-
-	private void on_line_view_collapsed(LineView line_view) {
-		for (int i = line_container.get_line_view_index(line_view) + 1;
-				i < line_container.get_line_count(); i++) {
-			if (line_container.get_line_view(i).is_prompt_line)
+	// Retrieve and show text menus
+	private bool on_motion_notify_event(Gdk.EventMotion e) {
+		int x, y;
+		TextIter iter;
+		TextTag tag = null;
+		TextMenu text_menu = null;
+		view.window_to_buffer_coords(TextWindowType.TEXT, (int)e.x, (int)e.y, out x, out y);
+		view.get_iter_at_position (out iter, null, x, y);
+		foreach (var entry in terminal.terminal_output.tags_by_text_menu.entries)
+			if (iter.has_tag(entry.value)) {
+				text_menu = entry.key;
+				tag = entry.value;
 				break;
+			}
 
-			line_container.get_line_view(i).visible = false;
-		}
-	}
+		if(text_menu == null)
+			return false;
 
-	private void on_line_view_expanded(LineView line_view) {
-		for (int i = line_container.get_line_view_index(line_view) + 1;
-				i < line_container.get_line_count(); i++) {
-			if (line_container.get_line_view(i).is_prompt_line)
-				break;
+		TextIter end = iter;
+		if (!iter.begins_tag(tag))
+			iter.backward_to_tag_toggle(tag);
+		if (!end.ends_tag(tag))
+			end.forward_to_tag_toggle(tag);
+		var text = view.buffer.get_slice(iter, end, true);
 
-			line_container.get_line_view(i).visible = true;
-		}
-	}
+		Gdk.Rectangle location;
+		view.get_iter_location (iter, out location);
+		view.buffer_to_window_coords(TextWindowType.TEXT, location.x, location.y, out x, out y);
 
-	private void on_line_view_text_menu_element_hovered(LineView line_view, int x, int y, int width, int height,
-			string text, TextMenu text_menu) {
 		text_menu.text = text;
 		menu_button.popup = text_menu.menu;
 
@@ -222,57 +252,81 @@ public class TerminalOutputView : ScrolledWindow {
 				out descriptor_width, out descriptor_height);
 
 		x = x - descriptor_width > 0 ? x - descriptor_width : 0;
-		((Fixed) menu_button.parent).move (menu_button, x, y - (int) vadjustment.value);
+		((Fixed) menu_button.parent).move (menu_button, x, y);
 		menu_button.show ();
+
+		return false;
 	}
 
-	public void mark_line_as_updated(int line_index) {
-		updated_lines.add(line_index);
-	}
+	// Move command cursor on click
+	private bool on_button_press_event(Gdk.EventButton e) {
+		TextIter iter;
+		int x, y;
+		view.window_to_buffer_coords(TextWindowType.TEXT, (int)e.x, (int)e.y, out x, out y);
+		view.get_iter_at_position (out iter, null, x, y);
 
-	public void render_terminal_output() {
-		render_terminal_text();
-		render_terminal_cursor();
-	}
+		var mark = terminal.terminal_output.command_start_position;
+		if (mark.line != iter.get_line()) {
+			// Hide command output on prompt click
+			var tag = view.buffer.tag_table.lookup("prompt");
+			if (iter.has_tag(tag)) {
+				iter.forward_to_line_end();
+				var end = iter;
+				end.forward_to_tag_toggle(tag);
+				tag = view.buffer.tag_table.lookup("invisible");
+				if (iter.has_tag(tag)) {
+					view.buffer.remove_tag(tag, iter, end);
+					iter.set_line_offset(1);
+					end = iter;
+					end.forward_char();
+					view.buffer.delete(ref iter, ref end);
+					view.buffer.insert(ref iter, " \u1433 ", 5);
+				} else {
+					view.buffer.apply_tag(tag, iter, end);
+					iter.set_line_offset(1);
+					end = iter;
+					end.forward_chars(3);
+					view.buffer.delete(ref iter, ref end);
+					view.buffer.insert(ref iter, "\u2015", 3);
+				}
+			}
 
-	private void render_terminal_text() {
-		terminal.terminal_output.print_transient_text();
-
-		foreach (var i in updated_lines) {
-			terminal.terminal_output[i].optimize();
-			line_container.get_line_view(i).render_line();
+			return false;
 		}
 
-		updated_lines.clear();
+		var index = iter.get_line_offset();
+		if (index < mark.column)
+			index = mark.column;
+
+		index -= terminal.terminal_output.cursor_position.column;
+
+		if (index > 0)
+			terminal.send_text (Utilities.repeat_string("\033[C", index));
+		else
+			terminal.send_text (Utilities.repeat_string("\033[D", index.abs()));
+
+		return false;
 	}
 
-	public void get_cursor_coordinates (TerminalOutput.CursorPosition pos, out int x, out int y)
-	{
-		var line_view = line_container.get_line_view (pos.line);
-		line_view.get_character_coordinates (pos.column, out x, out y);
-		y -= (int) vadjustment.value;
+	public void get_cursor_coordinates (TerminalOutput.CursorPosition pos, out int x, out int y) {
+		TextIter iter;
+		Gdk.Rectangle location;
+		terminal.terminal_output.get_iter_at_line_offset(out iter, pos.line, pos.column);
+		view.get_iter_location(iter, out location);
+		view.buffer_to_window_coords(TextWindowType.TEXT, location.x, location.y, out x, out y);
 	}
 
-	private void render_terminal_cursor() {
+	public void render_terminal_cursor() {
 		if (!position_terminal_cursor(true))
 			return;
 
 		TerminalOutput.CursorPosition cursor_position = terminal.terminal_output.cursor_position;
-		var character_elements = terminal.terminal_output[cursor_position.line].explode();
+		TerminalOutput.CursorPosition next = { cursor_position.line, cursor_position.column+1 };
 
-		string cursor_character;
-		TextAttributes cursor_attributes;
-		if (cursor_position.column >= character_elements.size) {
-			// Cursor is at the end of the line
-			cursor_character = "";
-			// Default attributes
-			cursor_attributes = new CharacterAttributes().get_text_attributes(
+		string cursor_character = terminal.terminal_output.get_range(cursor_position, next);
+
+		TextAttributes cursor_attributes = new CharacterAttributes().get_text_attributes(
 					Settings.get_default().color_scheme, Settings.get_default().dark);
-		} else {
-			cursor_character  = character_elements[cursor_position.column].text;
-			cursor_attributes = character_elements[cursor_position.column].attributes
-					.get_text_attributes(Settings.get_default().color_scheme, Settings.get_default().dark);
-		}
 
 		// Switch foreground and background colors for cursor
 		cursor_attributes.foreground_color = cursor_attributes.background_color;
@@ -292,7 +346,7 @@ public class TerminalOutputView : ScrolledWindow {
 	private bool position_terminal_cursor(bool animate) {
 		TerminalOutput.CursorPosition cursor_position = terminal.terminal_output.cursor_position;
 
-		if (!is_active || cursor_position.line >= line_container.get_line_count()) {
+		if (!is_active) {
 			cursor.hide();
 			return false;
 		}
@@ -302,57 +356,41 @@ public class TerminalOutputView : ScrolledWindow {
 		int cursor_x;
 		int cursor_y;
 		get_cursor_coordinates (cursor_position, out cursor_x, out cursor_y);
-
-		var child = Gtk.Allocation ();
-		child.x = cursor_x;
-		child.y = cursor_y;
-		child.width = Settings.get_default().character_width;
-		child.height = Settings.get_default().character_height;
-		cursor.size_allocate (child);
+		((Fixed)parent.parent).move(cursor, cursor_x, cursor_y);
 
 		return true;
 	}
 
 	public void scroll_to_position(TerminalOutput.CursorPosition position = {-1, -1}) {
-		if (position.line >= line_container.get_line_count())
-			return;
-
 		if (position.line == -1 && position.column == -1) 
 			// Default: Scroll to end
 			vadjustment.value = vadjustment.upper;
 		else {
-			Allocation box;
-			line_container.get_line_view(position.line).get_allocation (out box);
-			vadjustment.value = box.y + box.height;
+			TextIter iter;
+			view.buffer.get_iter_at_line_offset(out iter, position.line, position.column);
+			view.scroll_to_iter(iter, 0, false, 0, 0) ;
 		}
 	}
 
-	public void get_screen_position(TerminalOutput.CursorPosition position, out int? x, out int? y) {
-		if (position.line >= line_container.get_line_count()) {
-			x = null;
-			y = null;
+	public void get_screen_position(TerminalOutput.CursorPosition position, out int x, out int y) {
+		if (position.line >= view.buffer.get_line_count()) {
+			x = -1;
+			y = -1;
 			return;
 		}
 
-		var line = line_container.get_line_view(position.line);
+		int origin_x, origin_y;
+		get_cursor_coordinates(position, out x, out y);
+		view.get_window(TextWindowType.TEXT).get_origin(out origin_x, out origin_y);
 
-		int line_view_x;
-		int line_view_y;
-		line.get_window ().get_origin (out line_view_x, out line_view_y);
-
-		int character_x;
-		int character_y;
-		line.get_character_coordinates(position.column, out character_x, out character_y);
-
-		x = line_view_x + character_x;
-		y = line_view_y + character_y;
+		x += origin_x;
+		y += origin_y;
 	}
 
 	public int get_horizontal_padding() {
 		return
 		// 	// Scrollbar width + padding (see style.css)
 		// 	14 +
-		// 	// LineView padding
 				Settings.get_default().theme.margin_left +
 				Settings.get_default().theme.margin_right +
 				Settings.get_default().character_width;
@@ -382,45 +420,5 @@ public class TerminalOutputView : ScrolledWindow {
 		terminal.columns = columns;
 		// TODO: Use Utilities.schedule_execution here?
 		terminal.update_size();
-	}
-}
-
-// TODO: This is a hack, shoudn't be based on box.
-public class LineContainer : Box {
-
-	private Gee.List<LineView> line_views = new Gee.ArrayList<LineView>();
-
-	public LineContainer () {
-		orientation = Orientation.VERTICAL;
-	}
-
-	public void add_line_view(LineView line_view) {
-		line_view.line_number = line_views.size;
-		line_views.add(line_view);
-		add (line_view);
-		line_view.show_all ();
-	}
-
-	public LineView get_line_view(int index) {
-		return line_views[index];
-	}
-
-	public int? get_line_index_by_y (int y) {
-		for (var i = 0; i < line_views.size; i++) {
-			Allocation box;
-			line_views[i].get_allocation (out box);
-			if (box.y < y && y < box.y + box.height)
-				return i;
-		}
-
-		return -1;
-	}
-
-	public int get_line_view_index(LineView line_view) {
-		return line_views.index_of(line_view);
-	}
-
-	public int get_line_count() {
-		return line_views.size;
 	}
 }

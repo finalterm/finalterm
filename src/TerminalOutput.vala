@@ -28,7 +28,7 @@
  * because the screen output can be retroactively
  * modified by control sequences.
  */
-public class TerminalOutput : Gee.ArrayList<OutputLine> {
+public class TerminalOutput : Gtk.TextBuffer {
 
 	private Terminal terminal;
 
@@ -52,7 +52,7 @@ public class TerminalOutput : Gee.ArrayList<OutputLine> {
 
 	// The cursor's position within the full terminal output,
 	// not its position on the screen
-	public CursorPosition cursor_position = CursorPosition();
+	public new CursorPosition cursor_position = CursorPosition();
 
 	// Character Sets
 	private Gee.Map<unichar,unichar> graphics_set = new Gee.HashMap<unichar, unichar>();
@@ -95,7 +95,6 @@ public class TerminalOutput : Gee.ArrayList<OutputLine> {
 		active_character_set = default_set;
 	}
 
-
 	public struct CursorPosition {
 		public int line;
 		public int column;
@@ -110,16 +109,22 @@ public class TerminalOutput : Gee.ArrayList<OutputLine> {
 		}
 	}
 
-	private string transient_text = "";
-	private string printed_transient_text = "";
-
+	// State variables for prompt capturing;
 	private bool capturing_prompt = false;
-	private OutputLine prompt;
+	private string prompt;
+	private string prompt_slice;
+	private CharacterAttributes slice_attrs;
 
 	public string last_command = "";
 
 	public bool command_mode = false;
 	public CursorPosition command_start_position;
+
+	public Gee.Map<TextMenu, Gtk.TextTag> tags_by_text_menu;
+	private Gtk.TextTag text_menu_tag;
+	private CursorPosition text_menu_start;
+
+	private Gee.Set<int> updated_lines;
 
 	public TerminalOutput(Terminal terminal) {
 		load_character_sets();
@@ -131,24 +136,25 @@ public class TerminalOutput : Gee.ArrayList<OutputLine> {
 		screen_offset = 0;
 		move_cursor(0, 0);
 
+		updated_lines = new Gee.HashSet<int>();
 		line_updated.connect(on_line_updated);
+
+		tags_by_text_menu = new Gee.HashMap<Gtk.TextTag,TextMenu>();
+		foreach (var text_menu in FinalTerm.text_menus_by_pattern.values)
+			tags_by_text_menu[text_menu] = create_tag(null);
+
+		foreach (var text_menu in FinalTerm.text_menus_by_code.values)
+			tags_by_text_menu[text_menu] = create_tag(null);
+
+		create_tag("prompt");
 	}
 
-	// TODO: Rename to "interpret_stream_element"?
-	public void parse_stream_element(TerminalStream.StreamElement stream_element) {
+	public void interpret_stream_element(TerminalStream.StreamElement stream_element) {
 		switch (stream_element.stream_element_type) {
 		case TerminalStream.StreamElement.StreamElementType.TEXT:
 			//message(_("Text sequence received: '%s'"), stream_element.text);
 
-			// Print only text that has not been printed yet
-			string text_left = stream_element.text.substring(
-					stream_element.text.index_of_nth_char(
-						printed_transient_text.char_count()));
-
-			if (text_left.length == 0)
-				break;
-
-			print_text(text_left);
+			print_text(stream_element.text);
 			line_updated(cursor_position.line);
 			break;
 
@@ -176,6 +182,7 @@ public class TerminalOutput : Gee.ArrayList<OutputLine> {
 				// This code causes a line feed or a new line operation
 				// TODO: Does LF always imply CR?
 				move_cursor(cursor_position.line + 1, 0);
+				line_added();
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.HORIZONTAL_TAB:
@@ -326,7 +333,7 @@ public class TerminalOutput : Gee.ArrayList<OutputLine> {
 					 * Actually, the behavior implemented by GNOME Terminal is slightly
 					 * different, but this recipe gives better results.
 					 */
-					int visible_lines = size - screen_offset;
+					int visible_lines = get_line_count() - screen_offset;
 					screen_offset += visible_lines;
 					move_cursor(cursor_position.line + visible_lines, cursor_position.column);
 
@@ -366,10 +373,8 @@ public class TerminalOutput : Gee.ArrayList<OutputLine> {
 
 			case TerminalStream.StreamElement.ControlSequenceType.ERASE_CHARACTERS:
 				// "Erase" means "clear" in this case (i.e. fill with whitespace)
-				var text_element = new TextElement(
-						Utilities.repeat_string(" ", stream_element.get_numeric_parameter(0, 1)),
-						current_attributes);
-				get(cursor_position.line).insert_element(text_element, cursor_position.column, true);
+				print_text(Utilities.repeat_string(" ", stream_element.get_numeric_parameter(0, 1)));
+
 				line_updated(cursor_position.line);
 				break;
 
@@ -433,19 +438,33 @@ public class TerminalOutput : Gee.ArrayList<OutputLine> {
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.FTCS_PROMPT:
-				get(cursor_position.line).is_prompt_line = true;
+				if (capturing_prompt) {
+					var attrs = slice_attrs.get_markup_attributes(Settings.get_default().color_scheme, Settings.get_default().dark);
+					if (attrs == "")
+						prompt += prompt_slice;
+					else
+						prompt += @"<span$attrs>$prompt_slice</span>";
 
-				capturing_prompt = true;
-				prompt = new OutputLine();
+					set_prompt(prompt);
+				} else {
+					prompt = "";
+					prompt_slice = "";
+					slice_attrs = current_attributes;
+				}
+
+				capturing_prompt = !capturing_prompt;
 				break;
 			case TerminalStream.StreamElement.ControlSequenceType.FTCS_COMMAND_START:
-				capturing_prompt = false;
-				set_prompt(prompt);
+				Gtk.TextIter start, end;
+				get_iter_at_line(out start, cursor_position.line);
+				get_iter_at_line_offset(out end, cursor_position.line, cursor_position.column);
+				apply_tag_by_name("prompt", start, end);
 
 				if (command_mode)
 					// TODO: This can happen with malformed multi-line commands
 					warning(_("Command start control sequence received while already in command mode"));
 				command_mode = true;
+				move_cursor(cursor_position.line, cursor_position.column);
 				command_start_position = cursor_position;
 				message(_("Command mode entered"));
 				break;
@@ -462,27 +481,20 @@ public class TerminalOutput : Gee.ArrayList<OutputLine> {
 				if (last_command != "") {
 					command_finished(last_command, return_code);
 					progress_finished();
-
-					// Set return code in corresponding prompt line
-					for (int i = size - 1; i >= 0; i--) {
-						if (get(i).is_prompt_line) {
-							get(i).return_code = return_code;
-							line_updated(i);
-							break;
-						}
-					}
 				}
 
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.FTCS_TEXT_MENU_START:
-				current_attributes = new CharacterAttributes.copy(current_attributes);
-				current_attributes.text_menu = FinalTerm.text_menus_by_code.get(stream_element.get_numeric_parameter(0, -1));
+				text_menu_start = cursor_position;
+				text_menu_tag = tags_by_text_menu[FinalTerm.text_menus_by_code.get(stream_element.get_numeric_parameter(0, -1))];
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.FTCS_TEXT_MENU_END:
-				current_attributes = new CharacterAttributes.copy(current_attributes);
-				current_attributes.text_menu = null;
+				Gtk.TextIter start, end;
+				get_iter_at_line_offset(out start, text_menu_start.line, text_menu_start.column);
+				get_iter_at_line_offset(out end, cursor_position.line, cursor_position.column);
+				apply_tag(text_menu_tag, start, end);
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.FTCS_PROGRESS:
@@ -534,9 +546,6 @@ public class TerminalOutput : Gee.ArrayList<OutputLine> {
 			}
 			break;
 		}
-
-		transient_text = "";
-		printed_transient_text = "";
 	}
 
 	public enum InterpretationStatus {
@@ -581,36 +590,6 @@ public class TerminalOutput : Gee.ArrayList<OutputLine> {
 		}
 	}
 
-	public void parse_transient_text(string transient_text) {
-		this.transient_text = transient_text;
-
-		// Send update signal here to trigger render but do not print text;
-		// the transient text will be printed just in time during render (performance)
-		// TODO: Revisit this!
-		line_updated(cursor_position.line);
-	}
-
-	public void print_transient_text() {
-		// Print only text that has not been printed yet
-		string text_left = transient_text.substring(
-				transient_text.index_of_nth_char(
-					printed_transient_text.char_count()));
-
-		if (text_left.length == 0)
-			return;
-
-		print_text(text_left);
-
-		// IMPORTANT: Do NOT send update signal here!
-		//            This method is called when rendering the terminal
-		//            and sending the signal would trigger another render.
-		// Call on_line_updated instead to trigger other update logic.
-		// TODO: Revisit this! Some command updates are being signaled multiple times
-		on_line_updated(0);
-
-		printed_transient_text += text_left;
-	}
-
 	public string get_command() {
 		// TODO: Revisit this check (condition should never fail)
 		if (command_start_position.compare(cursor_position) < 0) {
@@ -620,25 +599,78 @@ public class TerminalOutput : Gee.ArrayList<OutputLine> {
 		}
 	}
 
+	public void mark_text_menus() {
+		foreach(var line in updated_lines)
+		{
+			Gtk.TextIter start_iter;
+			get_iter_at_line(out start_iter, line);
+			var end_iter = start_iter;
+			end_iter.forward_to_line_end();
+			var text = get_slice(start_iter, end_iter, true);
+			foreach (var entry in FinalTerm.text_menus_by_pattern.entries) {
+				MatchInfo info;
+				int start, end;
+				if (!entry.key.match(text, 0, out info))
+					continue;
+
+				do {
+					info.fetch_pos(0, out start, out end);
+					start_iter.set_line_index(start);
+					end_iter.set_line_index(end);
+					apply_tag(tags_by_text_menu[entry.value], start_iter, end_iter);
+				} while (info.next());
+			}
+		}
+		updated_lines.clear();
+	}
+
 	private void print_text(string text) {
 		var translated = "";
 		for(var i = 0; i < text.length; i++)
 			translated += active_character_set.has_key(text[i]) ? active_character_set[text[i]].to_string () : text[i].to_string ();
 
-		var text_element = new TextElement(translated, current_attributes);
-
 		if (capturing_prompt) {
-			prompt.insert_element(text_element, cursor_position.column+prompt.get_length (), true);
+			if (slice_attrs != current_attributes) {
+				var attrs = slice_attrs.get_markup_attributes(Settings.get_default().color_scheme, Settings.get_default().dark);
+				if (attrs == "")
+					prompt += prompt_slice;
+				else
+					prompt += @"<span$attrs>$prompt_slice</span>";
+
+				prompt_slice = "";
+				slice_attrs = current_attributes;
+			}
+
+			prompt_slice += translated;
 		} else {
-			get(cursor_position.line).insert_element(text_element, cursor_position.column, true);
+			begin_user_action();
+			Gtk.TextIter iter;
+			get_iter_at_line_offset(out iter, cursor_position.line, cursor_position.column);
+			insert(ref iter, translated, translated.length);
+
+			Gtk.TextIter start;
+			get_iter_at_line_offset(out start, cursor_position.line, cursor_position.column);
+			var tags = current_attributes.get_text_tags(this, Settings.get_default().color_scheme, Settings.get_default().dark);
+			foreach (var tag in tags)
+				apply_tag(tag, start, iter);
+
+			end_user_action();
+
 			// TODO: Handle double-width unicode characters and tabs
-			move_cursor(cursor_position.line, cursor_position.column + text_element.get_length());
+			move_cursor(cursor_position.line, cursor_position.column + translated.length);
 		}
 	}
 
 	private void on_line_updated(int line_index) {
-		if (command_mode)
+		if (command_mode) {
 			command_updated(get_command());
+			return;
+		}
+
+		updated_lines.add(line_index);
+
+		Utilities.schedule_execution(() =>
+			mark_text_menus(), "mark_text_menus", 0, Priority.DEFAULT_IDLE);
 	}
 
 	private CursorPosition get_screen_position(CursorPosition position) {
@@ -659,21 +691,19 @@ public class TerminalOutput : Gee.ArrayList<OutputLine> {
 		screen_offset = int.max(screen_offset, cursor_position.line - terminal.lines + 1);
 
 		// Add enough lines to make the line index valid
-		int lines_to_add = cursor_position.line - size + 1;
-		if (lines_to_add > 0) {
-			for (int i = 0; i < lines_to_add; i++)
-				add(new OutputLine());
-
-			line_added();
-		}
+		int lines_to_add = cursor_position.line - get_line_count() + 1;
+		var whitespace = Utilities.repeat_string("\n", lines_to_add);
 
 		// Add enough whitespace to make the column index valid
-		int columns_to_add = cursor_position.column - get(cursor_position.line).get_length();
-		if (columns_to_add > 0) {
-			var text_element = new TextElement(
-					Utilities.repeat_string(" ", columns_to_add),
-					current_attributes);
-			get(cursor_position.line).add(text_element);
+		Gtk.TextIter iter;
+		get_end_iter(out iter);
+		int columns_to_add = cursor_position.column - iter.get_chars_in_line();
+		whitespace += Utilities.repeat_string(" ", columns_to_add);
+
+		if (whitespace != "") {
+			Gtk.TextIter end;
+			get_end_iter(out end);
+			insert(ref end, whitespace, whitespace.length);
 		}
 
 		cursor_position_changed(cursor_position);
@@ -685,44 +715,50 @@ public class TerminalOutput : Gee.ArrayList<OutputLine> {
 	}
 
 	// Returns the text contained in the specified range
-	private string get_range(CursorPosition start_position = {0, 0},
-							 CursorPosition end_position   = {size - 1, get(size - 1).get_length()}) {
-		// TODO: This works with bytes rather than characters
-		if (start_position.line == end_position.line) {
-			var line_text = get(start_position.line).get_text();
-			return line_text.substring(start_position.column, end_position.column - start_position.column);
+	public string get_range(CursorPosition start_position = {-1, -1},
+							 CursorPosition end_position   = {-1, -1}) {
+		Gtk.TextIter start;
+		Gtk.TextIter end;
+		if (start_position.line == -1)
+			get_start_iter(out start);
+		else {
+			get_iter_at_line(out start, start_position.line);
+			if (start.get_chars_in_line() > start_position.column)
+				start.forward_chars(start_position.column);
+			else
+				start.forward_to_line_end();
 		}
 
-		var text_builder = new StringBuilder();
-
-		// Works because start and end position are on different lines
-		text_builder.append(get(start_position.line).get_text().substring(start_position.column));
-		text_builder.append("\n");
-
-		for (int i = start_position.line + 1; i < end_position.line; i++) {
-			text_builder.append(get(i).get_text());
-			text_builder.append("\n");
+		if (end_position.line == -1)
+			get_start_iter(out end);
+		else {
+			get_iter_at_line(out end, end_position.line);
+			if (end.get_chars_in_line() > end_position.column)
+				end.forward_chars(end_position.column);
+			else
+				end.forward_to_line_end();
 		}
 
-		text_builder.append(get(end_position.line).get_text().substring(0, end_position.column));
-
-		return text_builder.str;
+		return get_slice(start, end, false);
 	}
 
 	private void erase_range(CursorPosition start_position, CursorPosition end_position) {
-		if (start_position.line == end_position.line) {
-			erase_line_range(start_position.line, start_position.column, end_position.column);
-			return;
-		}
+		Gtk.TextIter start;
+		Gtk.TextIter end;
 
-		// Works because start and end position are on different lines
-		erase_line_range(start_position.line, start_position.column);
+		get_iter_at_line(out start, start_position.line);
+		if (start.get_chars_in_line() > start_position.column)
+			start.forward_chars(start_position.column);
+		else
+			start.forward_to_line_end();
 
-		for (int i = start_position.line + 1; i < end_position.line; i++) {
-			erase_line_range(i);
-		}
+		get_iter_at_line(out end, end_position.line);
+		if (end.get_chars_in_line() > end_position.column)
+			end.forward_chars(end_position.column);
+		else
+			end.forward_to_line_end();
 
-		erase_line_range(end_position.line, 0, end_position.column);
+		this.delete(ref start, ref end);
 	}
 
 	private void erase_range_screen(CursorPosition start_position = {1, 1},
@@ -730,23 +766,24 @@ public class TerminalOutput : Gee.ArrayList<OutputLine> {
 		var absolute_start_position = get_absolute_position(start_position);
 		var absolute_end_position   = get_absolute_position(end_position);
 
-		// Constrain positions to permissible range
-		absolute_start_position.line = int.min(absolute_start_position.line, size - 1);
-		absolute_start_position.column = int.min(absolute_start_position.column,
-				get(absolute_start_position.line).get_length());
-		absolute_end_position.line = int.min(absolute_end_position.line, size - 1);
-		absolute_end_position.column = int.min(absolute_end_position.column,
-				get(absolute_end_position.line).get_length());
-
 		erase_range(absolute_start_position, absolute_end_position);
 	}
 
 	private void erase_line_range(int line, int start_position = 0, int end_position = -1) {
-		get(line).erase_range(start_position, end_position);
+		Gtk.TextIter start;
+		Gtk.TextIter end;
+		get_iter_at_line_offset(out start, line, start_position);
+		if (end_position < 0) {
+			get_iter_at_line(out end, line);
+			end.forward_to_line_end();
+		} else
+			get_iter_at_line_offset(out end, line, end_position);
+		this.delete(ref start, ref end);
+
 		line_updated(line);
 	}
 
-	public signal void set_prompt(OutputLine prompt);
+	public signal void set_prompt(string prompt);
 
 	public signal void line_added();
 
@@ -763,250 +800,4 @@ public class TerminalOutput : Gee.ArrayList<OutputLine> {
 	public signal void progress_finished();
 
 	public signal void cursor_position_changed(CursorPosition new_position);
-
-
-	public class OutputLine : Gee.ArrayList<TextElement> {
-
-		public bool is_prompt_line { get; set; default = false; }
-		public int return_code { get; set; default = 0; }
-
-		// Returns a new OutputLine object reflecting
-		// matching text menu patterns if there are any
-		// and this object otherwise (the function is
-		// therefore guaranteed to never modify this object)
-		public OutputLine generate_text_menu_elements() {
-			var matching_pattern = false;
-			var text = get_text();
-			foreach (var pattern in FinalTerm.text_menus_by_pattern.keys) {
-				matching_pattern = (matching_pattern || pattern.match(text));
-			}
-
-			if (!matching_pattern)
-				return this;
-
-			OutputLine output_line = new OutputLine();
-			output_line.is_prompt_line = is_prompt_line;
-			output_line.return_code = return_code;
-			foreach (var text_element in this) {
-				output_line.add_all(text_element.get_text_menu_elements());
-			}
-			return output_line;
-		}
-
-		public void insert_element(TextElement text_element, int position, bool overwrite = false) {
-			// TODO: Handle position > length
-			if (position == get_length()) {
-				add(text_element);
-				return;
-			}
-
-			var character_elements = explode();
-			var result_elements = new Gee.ArrayList<TextElement>();
-
-			result_elements.add_all(character_elements.slice(0, position));
-			result_elements.add(text_element);
-
-			int next_position = (overwrite ? position + text_element.get_length() : position);
-
-			// This check is necessary because slice
-			// returns null if start > stop
-			if (next_position <= get_length())
-				result_elements.add_all(character_elements.slice(next_position, get_length()));
-
-			assemble(result_elements);
-		}
-
-		// TODO: Convert position variables to long (cf. GLib.string)?
-		// TODO: Use contract programming (requires/ensures) to ensure positions are acceptable
-		public void erase_range(int start_position = 0, int end_position = -1) {
-			var character_elements = explode();
-			var result_elements = new Gee.ArrayList<TextElement>();
-
-			result_elements.add_all(character_elements.slice(0, start_position));
-			if (end_position != -1)
-				result_elements.add_all(character_elements.slice(end_position, get_length()));
-
-			// TODO: Simple add sufficient (only optimize on render)?
-			assemble(result_elements);
-		}
-
-		public void optimize() {
-			var text_elements = new Gee.ArrayList<TextElement>();
-			text_elements.add_all(this);
-			assemble(text_elements);
-		}
-
-		// Returns a character-by-character representation of the line
-		public Gee.List<TextElement> explode() {
-			var character_elements = new Gee.ArrayList<TextElement>();
-			foreach (var text_element in this) {
-				character_elements.add_all_array(text_element.explode());
-			}
-			return character_elements;
-		}
-
-		// Assembles the supplied list of text elements into
-		// the minimum number of elements required to preserve
-		// all character attributes
-		public void assemble(Gee.List<TextElement> text_elements) {
-			clear();
-
-			if (text_elements.is_empty)
-				return;
-
-			// Works because list is not empty
-			var current_attributes = text_elements.get(0).attributes;
-			var text_builder = new StringBuilder();
-
-			foreach (var text_element in text_elements) {
-				if (!text_element.attributes.equals(current_attributes)) {
-					add(new TextElement(text_builder.str, current_attributes));
-					current_attributes = text_element.attributes;
-					text_builder.erase();
-				}
-				text_builder.append(text_element.text);
-			}
-
-			if (text_builder.len > 0) {
-				// Add final element
-				add(new TextElement(text_builder.str, current_attributes));
-			}
-		}
-
-		public int get_length() {
-			int length = 0;
-			foreach (var text_element in this) {
-				length += text_element.get_length();
-			}
-			return length;
-		}
-
-		public string get_text() {
-			var text_builder = new StringBuilder();
-			foreach (var text_element in this) {
-				text_builder.append(text_element.text);
-			}
-			return text_builder.str;
-		}
-
-		public void get_text_element_from_index(int index, out TextElement? text_element, out int? position) {
-			int current_index = 0;
-			foreach (var current_element in this) {
-				if (index >= current_index && index < (current_index + current_element.get_length())) {
-					text_element = current_element;
-					position = current_index;
-					return;
-				}
-				current_index += current_element.get_length();
-			}
-
-			text_element = null;
-			position = null;
-		}
-
-	}
-
-
-	// TODO: Make this a struct?
-	public class TextElement : Object {
-
-		public string text { get; set; }
-		public CharacterAttributes attributes { get; set; }
-
-		public TextElement(string text, CharacterAttributes attributes) {
-			this.text = text;
-			this.attributes = attributes;
-		}
-
-		public TextElement.copy(TextElement text_element) {
-			text = text_element.text;
-			attributes = new CharacterAttributes.copy(text_element.attributes);
-		}
-
-		public Gee.List<TextElement> get_text_menu_elements() {
-			var old_text_elements = new Gee.ArrayList<TextElement>();
-			var current_text_elements = new Gee.ArrayList<TextElement>();
-
-			current_text_elements.add(new TextElement.copy(this));
-
-			foreach (var pattern in FinalTerm.text_menus_by_pattern.keys) {
-				old_text_elements.clear();
-				old_text_elements.add_all(current_text_elements);
-				current_text_elements.clear();
-
-				foreach (var text_element in old_text_elements) {
-					current_text_elements.add_all(get_text_menu_elements_for_pattern(text_element, pattern));
-				}
-			}
-
-			return current_text_elements;
-		}
-
-		public Gee.List<TextElement> get_text_menu_elements_for_pattern(TextElement text_element, Regex pattern) {
-			var text_elements = new Gee.ArrayList<TextElement>();
-
-			MatchInfo match_info;
-			if (pattern.match(text_element.text, 0, out match_info)) {
-				int old_end_position = 0;
-
-				// Loop over all matches and split them off as
-				// separate text elements with the appropriate
-				// text menu attached to them
-				try {
-					do {
-						int start_position;
-						int end_position;
-						match_info.fetch_pos(0, out start_position, out end_position);
-
-						if (start_position > old_end_position) {
-							// There is text to the left of the match
-							text_elements.add(new TextElement(
-									text_element.text.substring(old_end_position, start_position - old_end_position),
-									new CharacterAttributes.copy(text_element.attributes)));
-						}
-
-						var character_attributes = new CharacterAttributes.copy(text_element.attributes);
-						character_attributes.text_menu = FinalTerm.text_menus_by_pattern.get(pattern);
-						text_elements.add(new TextElement(
-								text_element.text.substring(start_position, end_position - start_position),
-								character_attributes));
-
-						old_end_position = end_position;
-					} while (match_info.next());
-				} catch (Error e) { warning(e.message); }
-
-				if (old_end_position < text_element.text.length) {
-					// There is text to the right of the last match
-					text_elements.add(new TextElement(
-							text_element.text.substring(old_end_position),
-							new CharacterAttributes.copy(text_element.attributes)));
-				}
-
-			} else {
-				text_elements.add(text_element);
-			}
-
-			return text_elements;
-		}
-
-		public int get_length() {
-			return text.char_count();
-		}
-
-		// Returns an array of TextElement objects, each of them
-		// containing a single character from this element
-		// and sharing this element's character attributes
-		// NOTE: This method returns an array rather than a list
-		//       because it is highly performance critical
-		public TextElement[] explode() {
-			var character_elements = new TextElement[text.char_count()];
-			for (int i = 0; i < character_elements.length; i++) {
-				// TODO: Potential problem as attributes is passed by reference
-				character_elements[i] = new TextElement(text.get_char(text.index_of_nth_char(i)).to_string(), attributes);
-			}
-			return character_elements;
-		}
-
-	}
-
 }

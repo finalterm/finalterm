@@ -60,7 +60,6 @@ vala_precompile(VALA_C
 	src/TerminalOutput.vala
 	src/CharacterAttributes.vala
 	src/TerminalView.vala
-	src/LineView.vala
 	src/TerminalWidget.vala
 	src/NestingContainer.vala
 	src/Autocompletion.vala
@@ -75,7 +74,6 @@ vala_precompile(VALA_C
 	src/Command.vala
 	src/Settings.vala
 	src/Metrics.vala
-	src/SelectionManager.vala
 	src/StatusBar.vala
 PACKAGES
 	${PKGS}

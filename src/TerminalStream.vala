@@ -134,7 +134,8 @@ public class TerminalStream : Object {
 
 		switch (parse_state) {
 		case ParseState.TEXT:
-			transient_text_updated(sequence_builder.str);
+			Utilities.schedule_execution(() =>
+				emit_sequence(), "emit_sequence", 0, Priority.DEFAULT_IDLE);
 			break;
 		case ParseState.CONTROL_CHARACTER:
 			break;
@@ -189,9 +190,6 @@ public class TerminalStream : Object {
 	}
 
 	public signal void element_completed(StreamElement stream_element);
-
-	public signal void transient_text_updated(string transient_text);
-
 
 	public class StreamElement : Object {
 

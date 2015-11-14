@@ -52,11 +52,8 @@ public class Terminal : Object {
 		columns = Settings.get_default().terminal_columns;
 
 		terminal_stream.element_completed.connect(on_stream_element_completed);
-		terminal_stream.transient_text_updated.connect(on_stream_transient_text_updated);
 
 		terminal_output = new TerminalOutput(this);
-		terminal_output.line_added.connect(on_output_line_added);
-		terminal_output.line_updated.connect(on_output_line_updated);
 		terminal_output.command_updated.connect(on_output_command_updated);
 		terminal_output.command_executed.connect(on_output_command_executed);
 #if HAS_NOTIFY
@@ -98,27 +95,11 @@ public class Terminal : Object {
 	}
 
 	private void on_stream_element_completed(TerminalStream.StreamElement stream_element) {
-		terminal_output.parse_stream_element(stream_element);
-	}
-
-	private void on_stream_transient_text_updated(string transient_text) {
-		terminal_output.parse_transient_text(transient_text);
-	}
-
-	private void on_output_line_added() {
-		terminal_view.terminal_output_view.add_line_views();
-	}
-
-	private void on_output_line_updated(int line_index) {
-		terminal_view.terminal_output_view.mark_line_as_updated(line_index);
-
-		// TODO: Add information about instance to key
-		Utilities.schedule_execution(terminal_view.terminal_output_view.render_terminal_output,
-				"render_terminal_output", Settings.get_default().render_interval);
+		terminal_output.interpret_stream_element(stream_element);
 	}
 
 	private void on_output_command_updated(string command) {
-		message(_("Command updated: '%s'"), command);
+		// message(_("Command updated: '%s'"), command);
 
 		var stripped_command = command.strip();
 		if (stripped_command == "") {
@@ -172,8 +153,8 @@ public class Terminal : Object {
 
 	private void on_output_cursor_position_changed(TerminalOutput.CursorPosition new_position) {
 		// TODO: Add information about instance to key
-		Utilities.schedule_execution(terminal_view.terminal_output_view.render_terminal_output,
-				"render_terminal_output", Settings.get_default().render_interval);
+		Utilities.schedule_execution(terminal_view.terminal_output_view.render_terminal_cursor,
+				"render_terminal_cursor", Settings.get_default().render_interval);
 	}
 
 	public void send_text(string text) {

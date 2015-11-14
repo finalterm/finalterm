@@ -40,26 +40,3 @@ GtkPaned {
 .status-bar .menu .label {
   padding: 1px;
 }
-
-.collapse-button {
-  margin: 0;
-  padding: 0;
-  font-size: 12px;
-  color: #ffffff;
-  background-color: transparent;
-  background-image: none;
-  border-width: 0px;
-  border-image: none;
-}
-
-.collapse-button:hover {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.collapse-button.error {
-  color: #ff0000;
-}
-
-.collapse-button.error:hover {
-  color: rgba(255, 0, 0, 0.8);
-}

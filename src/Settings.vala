@@ -276,12 +276,18 @@ TerminalWidget
 	background-color: $background_color;
 }
 
-LineView {
+GtkTextView {
+	background-color: transparent;
 	color: $(foreground_color.to_string ());
 	font: $terminal_font_name;
 	margin-left: $(theme.margin_left)px;
 	margin-right: $(theme.margin_right)px;
 	padding: 0;
+}
+
+GtkTextView:selected {
+	background-color: $(foreground_color.to_string ());
+	color: $background_color;
 }
 ";
 		style.load_from_data (css, css.length);

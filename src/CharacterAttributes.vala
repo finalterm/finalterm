@@ -37,8 +37,6 @@ public class CharacterAttributes : Object {
 	public bool inverse { get; set; }
 	public bool invisible { get; set; }
 
-	public TextMenu text_menu { get; set; }
-
 	public bool equals(CharacterAttributes attributes) {
 		return
 			(foreground_color == attributes.foreground_color &&
@@ -51,8 +49,7 @@ public class CharacterAttributes : Object {
 			 underlined == attributes.underlined &&
 			 blink == attributes.blink &&
 			 inverse == attributes.inverse &&
-			 invisible == attributes.invisible &&
-			 text_menu == attributes.text_menu);
+			 invisible == attributes.invisible);
 	}
 
 	private void reset() {
@@ -68,8 +65,6 @@ public class CharacterAttributes : Object {
 		blink = false;
 		inverse = false;
 		invisible = false;
-		// TODO: SGR reset should not reset menu
-		text_menu = null;
 	}
 
 	private void copy_method(CharacterAttributes character_attributes) {
@@ -84,7 +79,6 @@ public class CharacterAttributes : Object {
 		blink = character_attributes.blink;
 		inverse = character_attributes.inverse;
 		invisible = character_attributes.invisible;
-		text_menu = character_attributes.text_menu;
 	}
 
 	public CharacterAttributes() {
@@ -293,6 +287,64 @@ public class CharacterAttributes : Object {
 		}
 	}
 
+	public Gtk.TextTag[] get_text_tags(Gtk.TextBuffer buffer, ColorScheme color_scheme, bool dark) {
+		Gdk.RGBA foreground;
+		if (use_rgb_foreground_color) {
+			foreground = rgb_foreground_color;
+		} else {
+			if (foreground_color == -1) {
+				foreground = color_scheme.get_foreground_color(dark);
+			} else {
+				foreground = color_scheme.get_indexed_color(foreground_color, dark);
+				if (bold) {
+					foreground.red = (foreground.red + 0.1).clamp(0.0, 1.0);
+					foreground.green = (foreground.green + 0.1).clamp(0.0, 1.0);
+					foreground.blue = (foreground.blue + 0.1).clamp(0.0, 1.0);
+				}
+
+			}
+		}
+
+		Gdk.RGBA background;
+		if (use_rgb_background_color) {
+			background = rgb_background_color;
+		} else {
+			if (background_color == -1) {
+				background = color_scheme.get_background_color(dark);
+			} else {
+				background = color_scheme.get_indexed_color(background_color, dark);
+			}
+		}
+
+		if (inverse) {
+			var temp = background;
+			background = foreground;
+			foreground = temp;
+		}
+
+		var tags = new Gee.ArrayList<Gtk.TextTag>();
+
+		if (background != color_scheme.get_background_color(dark))
+			tags.add(buffer.tag_table.lookup(background.to_string()) ??
+				buffer.create_tag(background.to_string(), "background_rgba", background));
+
+		if (foreground != color_scheme.get_foreground_color(dark))
+			tags.add(buffer.tag_table.lookup(foreground.to_string()) ??
+				buffer.create_tag(foreground.to_string(), "foreground_rgba", foreground));
+
+		// Blink appears as Bold according to xterm specification
+		if (bold || blink)
+			tags.add(buffer.tag_table.lookup("bold") ?? buffer.create_tag("bold", "bold", Pango.Weight.BOLD));
+
+		if (underlined)
+			tags.add(buffer.tag_table.lookup("underline") ?? buffer.create_tag("underline", "underline", Pango.Underline.SINGLE));
+
+		if (invisible)
+			tags.add(buffer.tag_table.lookup("invisible"));
+
+		return tags.to_array();
+	}
+
 	// Translates SGR into Clutter attributes using the specified color scheme
 	public TextAttributes get_text_attributes(ColorScheme color_scheme, bool dark) {
 		var text_attributes = new TextAttributes();
@@ -349,11 +401,12 @@ public class CharacterAttributes : Object {
 
 		text_attributes.underlined = underlined;
 
-		text_attributes.text_menu = text_menu;
-
 		return text_attributes;
 	}
 
+	public string get_markup_attributes(ColorScheme color_scheme, bool dark) {
+		return get_text_attributes(color_scheme, dark).get_markup_attributes(color_scheme, dark);
+	}
 }
 
 
@@ -363,8 +416,6 @@ public class TextAttributes : Object {
 	public Gdk.RGBA background_color { get; set; }
 	public bool bold { get; set; }
 	public bool underlined { get; set; }
-
-	public TextMenu text_menu { get; set; }
 
 	public string get_markup_attributes(ColorScheme color_scheme, bool dark) {
 		var attribute_builder = new StringBuilder();
@@ -378,16 +429,8 @@ public class TextAttributes : Object {
 		if (bold)
 			attribute_builder.append(" font_weight='bold'");
 
-		if (text_menu != null) {
-			attribute_builder.append(" foreground='" +
-					Utilities.get_parsable_color_string(color_scheme.get_indexed_color(text_menu.color, dark)) + "'");
+		if (underlined)
 			attribute_builder.append(" underline='single'");
-		} else {
-			// Only set underline attribute if no text menu is present
-			// to avoid error when two underline attributes are given
-			if (underlined)
-				attribute_builder.append(" underline='single'");
-		}
 
 		return attribute_builder.str;
 	}

@@ -58,7 +58,9 @@ PS1_right=$(gsettings get org.gnome.finalterm status-bar-right)
 PS1_right=${PS1_right//\\\\/\\}
 PS1_right=${PS1_right:1:${#PS1_right}-2}
 
-PS1="\[$(final_term_control_sequence 'A')$PS1_left\e[0m:middle:$PS1_middle\e[0m:right:$PS1_right$(final_term_control_sequence 'B')\]"
+PS1_string="  \341\220\263"
+
+PS1="\[$(final_term_control_sequence 'A')$PS1_left\e[0m:middle:\e[0m$PS1_middle\e[0m:right:\e[0m$PS1_right$(final_term_control_sequence 'A')\]  \341\220\263\[$(final_term_control_sequence 'B')\]"
 
 
 # Logic for terminal commands

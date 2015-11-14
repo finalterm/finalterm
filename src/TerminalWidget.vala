@@ -67,8 +67,18 @@ public class TerminalWidget : Gtk.EventBox, NestingContainerChild {
 
 		terminal_view = new TerminalView(terminal);
 		terminal.terminal_view = terminal_view;
-		terminal_view.terminal_output_view.bind_selection(this);
 		add (terminal_view);
+		((Gtk.TextView)terminal_view.terminal_output_view.get_children().nth_data(0))
+			.populate_popup.connect((menu) => {
+				var children = menu.get_children();
+				for (var i = 0; i < children.length(); i++)
+					menu.remove(children.nth_data(i));
+
+				foreach (var item in get_menu_items())
+					menu.append(item);
+
+				menu.show_all();
+			});
 
 		var inactive_effect = new Gtk.DrawingArea ();
 		inactive_effect.get_style_context ().add_class("inactive-effect");
@@ -150,61 +160,67 @@ public class TerminalWidget : Gtk.EventBox, NestingContainerChild {
 		return false;
 	}
 
-	private Gtk.Menu get_context_menu() {
-		context_menu = new Gtk.Menu();
-
+	private Gtk.MenuItem[] get_menu_items() {
+		var items = new Gee.ArrayList<Gtk.MenuItem>();
 		Gtk.MenuItem menu_item;
 
 		menu_item = new Gtk.MenuItem.with_label(_("New Tab"));
 		menu_item.activate.connect(() => {
 			add_tab();
 		});
-		context_menu.append(menu_item);
+		items.add(menu_item);
 
-		context_menu.append(new Gtk.SeparatorMenuItem());
+		items.add(new Gtk.SeparatorMenuItem());
 
 		menu_item = new Gtk.MenuItem.with_label(_("Split Horizontally"));
 		menu_item.activate.connect(() => {
 			split(Gtk.Orientation.HORIZONTAL);
 		});
-		context_menu.append(menu_item);
+		items.add(menu_item);
 
 		menu_item = new Gtk.MenuItem.with_label(_("Split Vertically"));
 		menu_item.activate.connect(() => {
 			split(Gtk.Orientation.VERTICAL);
 		});
-		context_menu.append(menu_item);
+		items.add(menu_item);
 
-		context_menu.append(new Gtk.SeparatorMenuItem());
+		items.add(new Gtk.SeparatorMenuItem());
 
 		menu_item = new Gtk.MenuItem.with_label(_("Copy Last Command"));
 		menu_item.activate.connect(() => {
 			Utilities.set_clipboard_text(terminal.terminal_output.last_command);
 		});
-		context_menu.append(menu_item);
+		items.add(menu_item);
 
 		menu_item = new Gtk.MenuItem.with_label(_("Paste"));
 		menu_item.activate.connect(() => {
 			send_text_to_shell(Utilities.get_clipboard_text());
 		});
-		context_menu.append(menu_item);
+		items.add(menu_item);
 
-		var selection = terminal_view.terminal_output_view.get_selection();
-		if (selection.length > 0) {
+		if (terminal.terminal_output.has_selection) {
 			menu_item = new Gtk.MenuItem.with_label(_("Copy"));
-			menu_item.activate.connect(() => {
-				Utilities.set_clipboard_text(selection);
-			});
-			context_menu.append(menu_item);
+			menu_item.activate.connect(() =>
+				terminal.terminal_output.copy_clipboard(Utilities.get_clipboard()));
+			items.add(menu_item);
 		}
 
-		context_menu.append(new Gtk.SeparatorMenuItem());
+		items.add(new Gtk.SeparatorMenuItem());
 
 		menu_item = new Gtk.MenuItem.with_label(_("Close"));
 		menu_item.activate.connect(() => {
 			close();
 		});
-		context_menu.append(menu_item);
+		items.add(menu_item);
+
+		return items.to_array();
+	}
+
+	private Gtk.Menu get_context_menu() {
+		context_menu = new Gtk.Menu();
+
+		foreach (var item in get_menu_items())
+			context_menu.append(item);
 
 		context_menu.show_all();
 

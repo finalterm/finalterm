@@ -30,6 +30,9 @@ public class StatusBar : Box {
 	private Label middle;
 	private Label right;
 
+	private string middle_separator = ":middle:";
+	private string right_separator = ":right:";
+
 	private Gee.List<string> dirstack;
 	private Gtk.Menu menu;
 	private string? cwd;
@@ -65,7 +68,7 @@ public class StatusBar : Box {
 		terminal.terminal_output.set_prompt.connect(render);
 	}
 
-	private void render (TerminalOutput.OutputLine prompt) {
+	private void render (string prompt) {
 		var cwd = terminal.get_cwd ();
 		if (this.cwd != null && this.cwd != cwd) {
 			var item = new Gtk.MenuItem.with_label(this.cwd);
@@ -81,31 +84,8 @@ public class StatusBar : Box {
 			dirstack.add(cwd);
 		}
 
-		var markup = get_markup(prompt);
-		left.label = markup[0:markup.index_of(":middle:")];
-		middle.label = markup[markup.index_of(":middle:")+8:markup.index_of(":right:")];
-		right.label = markup[markup.index_of(":right:")+7:-1];
-	}
-
-	private string get_markup(TerminalOutput.OutputLine output_line) {
-		var markup_builder = new StringBuilder();
-
-		foreach (var text_element in output_line) {
-			var text_attributes = text_element.attributes.get_text_attributes(
-					Settings.get_default().color_scheme, Settings.get_default().dark);
-			var markup_attributes = text_attributes.get_markup_attributes(
-					Settings.get_default().color_scheme, Settings.get_default().dark);
-
-			if (markup_attributes.length > 0) {
-				markup_builder.append(
-						"<span" + markup_attributes + ">" +
-						Markup.escape_text(text_element.text) +
-						"</span>");
-			} else {
-				markup_builder.append(Markup.escape_text(text_element.text));
-			}
-		}
-
-		return markup_builder.str;
+		left.label = prompt[0:prompt.index_of(middle_separator)];
+		middle.label = prompt[prompt.index_of(middle_separator)+middle_separator.length:prompt.index_of(right_separator)];
+		right.label = prompt[prompt.index_of(right_separator)+right_separator.length:prompt.length];
 	}
 }
