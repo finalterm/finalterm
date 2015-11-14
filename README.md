@@ -5,6 +5,7 @@ I have made the decision to pickup development on Final Term. Step one was to re
 ## Changes
 
 * Remove Clutter and Mx.
+* Proformace increase.
 * Selection and copy.
 * Click to move cursor.
 * Status bar.
