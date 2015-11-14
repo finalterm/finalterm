@@ -165,6 +165,15 @@ public class NestingContainer : Gtk.Bin, NestingContainerChild {
 	private void merge(NestingContainer container) {
 		assert(container_state != ContainerState.CHILD);
 
+		switch (container_state) {
+		case ContainerState.SPLIT:
+			remove(paned);
+			break;
+		case ContainerState.TABBED:
+			remove(notebook);
+			break;
+		}
+
 		switch (container.container_state) {
 		case ContainerState.CHILD:
 			container.children.get(0).reparent(this);
@@ -174,15 +183,6 @@ public class NestingContainer : Gtk.Bin, NestingContainerChild {
 			break;
 		case ContainerState.TABBED:
 			container.notebook.reparent(this);
-			break;
-		}
-
-		switch (container_state) {
-		case ContainerState.SPLIT:
-			remove(paned);
-			break;
-		case ContainerState.TABBED:
-			remove(notebook);
 			break;
 		}
 
