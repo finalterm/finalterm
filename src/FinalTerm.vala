@@ -139,6 +139,25 @@ public class FinalTerm : Gtk.Application {
 			if(!main_window.is_active)
 				autocompletion.hide_popup();
 		});
+		main_window.delete_event.connect(() => {
+			if (!Terminal.any_has_child())
+				return false;
+
+			Gtk.MessageDialog msg = new Gtk.MessageDialog (main_window,
+									Gtk.DialogFlags.MODAL,
+									Gtk.MessageType.WARNING,
+									Gtk.ButtonsType.CANCEL,
+									_("Close this terminal?"));
+			msg.secondary_text = _("There is still a process running in this terminal. Closing the terminal will kill it.");
+			msg.add_button(_("Close Terminal"), Gtk.ResponseType.OK);
+			msg.response.connect ((response) => {
+				msg.destroy();
+				if (response == Gtk.ResponseType.OK)
+					quit();
+			});
+			msg.show ();
+			return true;
+		});
 
 		var nesting_container = new NestingContainer(() => {
 			var terminal_widget = new TerminalWidget();

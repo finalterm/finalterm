@@ -58,10 +58,31 @@ public class TerminalWidget : Gtk.EventBox, NestingContainerChild {
 			}
 		});
 
+		var confirm_close = false;
 		close.connect(() => {
-			close_called = true;
-			if (!shell_terminated_called)
-				terminal.terminate_shell();
+			if (confirm_close || !terminal.has_child()) {
+				close_called = true;
+				if (!shell_terminated_called)
+					terminal.terminate_shell();
+
+				return;
+			}
+
+			Gtk.MessageDialog msg = new Gtk.MessageDialog (get_toplevel() as Gtk.Window,
+								Gtk.DialogFlags.MODAL, Gtk.MessageType.WARNING,
+								Gtk.ButtonsType.CANCEL, _("Close this terminal?"));
+			msg.secondary_text = _("There is still a process running in this terminal. Closing the terminal will kill it.");
+			msg.add_button(_("Close Terminal"), Gtk.ResponseType.OK);
+			msg.response.connect ((response) => {
+				msg.destroy();
+				if (response == Gtk.ResponseType.OK) {
+					confirm_close = true;
+					close();
+				}
+			});
+			msg.show ();
+
+			Signal.stop_emission_by_name (this, "close");
 		});
 
 

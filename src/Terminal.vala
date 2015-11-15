@@ -39,14 +39,6 @@ public class Terminal : Object {
 	// – an ugly necessity because of Vala's closure limitations
 	private static Gee.Map<int, Terminal> terminals_by_pid = new Gee.HashMap<int, Terminal>();
 
-	public string? get_cwd() {
-		foreach (var entry in terminals_by_pid.entries)
-			if (entry.value == this)
-				return FileUtils.read_link(@"/proc/$(entry.key)/cwd");
-
-		return null;
-	}
-
 	public Terminal() {
 		lines = Settings.get_default().terminal_lines;
 		columns = Settings.get_default().terminal_columns;
@@ -64,6 +56,50 @@ public class Terminal : Object {
 		terminal_output.cursor_position_changed.connect(on_output_cursor_position_changed);
 
 		initialize_pty();
+	}
+
+	public string? get_cwd() {
+		foreach (var entry in terminals_by_pid.entries)
+			if (entry.value == this)
+				return FileUtils.read_link(@"/proc/$(entry.key)/cwd");
+
+		return null;
+	}
+
+	public bool has_child() {
+		string stat, error;
+		Process.spawn_command_line_sync ("sh -c 'cat /proc/*/stat'", out stat, out error);
+		int pid = -1;
+		foreach (var entry in terminals_by_pid.entries)
+			if (entry.value == this)
+				pid = entry.key;
+
+		foreach (var line in stat.split("\n")) {
+			if (line.length == 0)
+				continue;
+
+			var data = line.split(" ");
+			if (pid == int.parse(data[3]))
+				return true;
+		}
+
+		return false;
+	}
+
+	public static bool any_has_child() {
+		string stat, error;
+		Process.spawn_command_line_sync ("sh -c 'cat /proc/*/stat'", out stat, out error);
+		var pids = terminals_by_pid.keys;
+		foreach (var line in stat.split("\n")) {
+			if (line.length == 0)
+				continue;
+
+			var data = line.split(" ");
+			if (pids.contains(int.parse(data[3])))
+				return true;
+		}
+
+		return false;
 	}
 
 	public void update_autocompletion_position() {
@@ -205,7 +241,10 @@ public class Terminal : Object {
 
 				// waitpid returns -1 on error, and 0 when status information is not available
 				while ((child_pid = Posix.waitpid(-1, null, Posix.WNOHANG)) > 0) {
-					var this_terminal = terminals_by_pid.get((int)child_pid);
+					var this_terminal = terminals_by_pid[(int)child_pid];
+					if (this_terminal == null)
+						continue;
+
 					// Close channel to keep pending shell IO from triggering UI updates (and crashes)
 					// after the corresponding TerminalWidget has been removed
 					this_terminal.command_channel.shutdown(false);
