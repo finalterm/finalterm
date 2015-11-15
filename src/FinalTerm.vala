@@ -135,6 +135,10 @@ public class FinalTerm : Gtk.Application {
 		// Enable background transparency
 		main_window.app_paintable = true;
 		main_window.set_visual(main_window.screen.get_rgba_visual());
+		main_window.notify["is-active"].connect (() => {
+			if(!main_window.is_active)
+				autocompletion.hide_popup();
+		});
 
 		var nesting_container = new NestingContainer(() => {
 			var terminal_widget = new TerminalWidget();
