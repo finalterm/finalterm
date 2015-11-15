@@ -117,6 +117,8 @@ public class FinalTerm : Gtk.Application {
 		string autocompletion_filename = data_dir.get_path() + "/commands.ftcompletion";
 
 		autocompletion = new Autocompletion();
+		autocompletion.item_activated.connect((command) =>
+			active_terminal_widget.set_shell_command(command));
 
 		if (File.new_for_path(autocompletion_filename).query_exists())
 			autocompletion.load_entries_from_file(autocompletion_filename);

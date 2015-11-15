@@ -45,6 +45,8 @@ public class Autocompletion : Object {
 
 		tree_view.set_filter_function<AutocompletionEntry>(filter_function);
 		tree_view.set_sort_function<AutocompletionEntry>(sort_function);
+
+		tree_view.item_activated.connect((item) => item_activated(((AutocompletionEntry)item).text));
 	}
 
 	public void save_entries_to_file(string filename) {
@@ -190,6 +192,8 @@ public class Autocompletion : Object {
 	public bool is_popup_visible() {
 		return popup_window.visible;
 	}
+
+	public signal void item_activated(string item);
 
 	private class AutocompletionEntry : Object {
 

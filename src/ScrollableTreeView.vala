@@ -59,6 +59,14 @@ public class ScrollableTreeView<T> : ScrolledWindow {
 		filter = new TreeModelFilter (model, null);
 		list = new TreeView.with_model (filter);
 		list.headers_visible = false;
+		list.activate_on_single_click = true;
+		list.row_activated.connect ((path, column) => {
+			TreeIter iter;
+			Object val;
+			filter.get_iter (out iter, path);
+			filter.get(iter, 0, out val, -1);
+			item_activated(val);
+		});
 		add (list);
 		list.insert_column_with_attributes (0, "Command", view, "data", 0);
 
@@ -160,4 +168,6 @@ public class ScrollableTreeView<T> : ScrolledWindow {
 
 		return val;
 	}
+
+	public signal void item_activated (T item);
 }
