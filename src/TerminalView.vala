@@ -146,8 +146,11 @@ public class TerminalOutputView : ScrolledWindow {
 			view.buffer.apply_tag_by_name("error", iter, end);
 		});
 
-		hadjustment.value_changed.connect(() => position_terminal_cursor(false));
-		vadjustment.value_changed.connect(() => position_terminal_cursor(false));
+		vadjustment.value_changed.connect(() => {
+			var height = Settings.get_default().character_height;
+			vadjustment.value = Math.round(vadjustment.value/height)*height;
+			position_terminal_cursor(false);
+		});
 
 		menu_button = new MenuButton();
 		menu_button.get_style_context().add_class("menu-button");
