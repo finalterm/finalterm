@@ -121,7 +121,7 @@ public class TerminalOutputView : ScrolledWindow {
 
 		terminal.terminal_output.create_tag("invisible", "invisible", true);
 		terminal.terminal_output.create_tag("error", "foreground", "#FF0000");
-		terminal.terminal_output.line_added.connect (() => {
+		terminal.terminal_output.changed.connect (() => {
 			Utilities.schedule_execution(() =>
 				scroll_to_position(), "scroll_to_position", 0, Priority.DEFAULT_IDLE);
 		});
