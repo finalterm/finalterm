@@ -268,6 +268,14 @@ public class TerminalOutput : Gtk.TextBuffer {
 				move_cursor(cursor_position.line, cursor_position.column - 1);
 				break;
 
+			case TerminalStream.StreamElement.ControlSequenceType.INSERT_CHARACTERS:
+				var restore = cursor_position;
+				print_text(Utilities.repeat_string(" ", stream_element.get_numeric_parameter(0, 1)), false);
+
+				// Shouldn't move cursor
+				move_cursor(restore.line, restore.column);
+				break;
+
 			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_UP:
 				// Moves the active position upward without altering the column position.
 				// The number of lines moved is determined by the parameter (default: 1)
@@ -624,10 +632,15 @@ public class TerminalOutput : Gtk.TextBuffer {
 		updated_lines.clear();
 	}
 
-	private void print_text(string text) {
+	private void print_text(string text, bool overwrite = true) {
 		var translated = "";
-		for(var i = 0; i < text.length; i++)
-			translated += active_character_set.has_key(text[i]) ? active_character_set[text[i]].to_string () : text[i].to_string ();
+		for (int i = 0; i < text.length; i++) {
+			if (!text.valid_char (i))
+				continue;
+
+			var c = text.get_char(i);
+			translated += active_character_set.has_key(c) ? active_character_set[c].to_string () : c.to_string ();
+		}
 
 		if (capturing_prompt) {
 			if (slice_attrs != current_attributes) {
@@ -644,11 +657,16 @@ public class TerminalOutput : Gtk.TextBuffer {
 			prompt_slice += translated;
 		} else {
 			begin_user_action();
-			Gtk.TextIter iter;
+			Gtk.TextIter iter, start;
 			get_iter_at_line_offset(out iter, cursor_position.line, cursor_position.column);
+			start = iter;
+
+			// Printed text should overwrite previous content
+			if (overwrite && iter.forward_chars(translated.char_count()))
+				this.delete(ref start, ref iter);
+
 			insert(ref iter, translated, translated.length);
 
-			Gtk.TextIter start;
 			get_iter_at_line_offset(out start, cursor_position.line, cursor_position.column);
 			var tags = current_attributes.get_text_tags(this, Settings.get_default().color_scheme, Settings.get_default().dark);
 			foreach (var tag in tags)
@@ -657,7 +675,7 @@ public class TerminalOutput : Gtk.TextBuffer {
 			end_user_action();
 
 			// TODO: Handle double-width unicode characters and tabs
-			move_cursor(cursor_position.line, cursor_position.column + translated.length);
+			move_cursor(cursor_position.line, cursor_position.column + translated.char_count());
 		}
 	}
 
