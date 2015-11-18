@@ -314,7 +314,12 @@ public class TerminalOutputView : ScrolledWindow {
 	public void get_cursor_coordinates (TerminalOutput.CursorPosition pos, out int x, out int y) {
 		TextIter iter;
 		Gdk.Rectangle location;
-		terminal.terminal_output.get_iter_at_line_offset(out iter, pos.line, pos.column);
+		terminal.terminal_output.get_iter_at_line(out iter, pos.line);
+		if (pos.column > iter.get_chars_in_line())
+			iter.forward_to_line_end();
+		else
+			iter.set_line_offset(pos.column);
+
 		view.get_iter_location(iter, out location);
 		view.buffer_to_window_coords(TextWindowType.TEXT, location.x, location.y, out x, out y);
 	}

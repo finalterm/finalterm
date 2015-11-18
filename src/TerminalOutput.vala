@@ -290,6 +290,21 @@ public class TerminalOutput : Gtk.TextBuffer {
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_FORWARD:
+			case TerminalStream.StreamElement.ControlSequenceType.REVERSE_INDEX:
+				move_screen(screen_offset-1);
+				move_cursor(cursor_position.line - stream_element.get_numeric_parameter(0,1), cursor_position.column);
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.NEXT_LINE:
+				move_screen(screen_offset+1);
+				move_cursor(cursor_position.line + stream_element.get_numeric_parameter(0,1), 0);
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.INDEX:
+				move_screen(screen_offset+1);
+				move_cursor(cursor_position.line + stream_element.get_numeric_parameter(0,1), cursor_position.column);
+				break;
+
 			case TerminalStream.StreamElement.ControlSequenceType.CHARACTER_POSITION_RELATIVE:
 				// The CUF sequence moves the active position to the right.
 				// The distance moved is determined by the parameter (default: 1)
@@ -659,11 +674,6 @@ public class TerminalOutput : Gtk.TextBuffer {
 			begin_user_action();
 			Gtk.TextIter iter, start;
 			get_iter_at_line_offset(out iter, cursor_position.line, cursor_position.column);
-			start = iter;
-
-			// Printed text should overwrite previous content
-			if (overwrite && iter.forward_chars(translated.char_count()))
-				this.delete(ref start, ref iter);
 
 			insert(ref iter, translated, translated.length);
 
@@ -671,6 +681,15 @@ public class TerminalOutput : Gtk.TextBuffer {
 			var tags = current_attributes.get_text_tags(this, Settings.get_default().color_scheme, Settings.get_default().dark);
 			foreach (var tag in tags)
 				apply_tag(tag, start, iter);
+
+			start = iter;
+
+			// Printed text should overwrite previous content on the line
+			if (overwrite) {
+				iter.set_line_offset(int.min (iter.get_line_offset() + translated.char_count(), iter.get_chars_in_line()-1));
+				if (iter.get_offset() > start.get_offset())
+				this.delete(ref start, ref iter);
+			}
 
 			end_user_action();
 
@@ -700,29 +719,47 @@ public class TerminalOutput : Gtk.TextBuffer {
 		return {position.line + screen_offset - 1, position.column - 1};
 	}
 
+	private void move_screen(int to) {
+		screen_offset = to;
+
+		int delete = get_line_count() - screen_offset - terminal.lines;
+		if (delete < 1)
+			return;
+
+		Gtk.TextIter iter;
+		get_end_iter(out iter);
+		var end = iter;
+		iter.backward_lines(delete);
+		this.delete (ref iter, ref end);
+	}
+
 	private void move_cursor(int line, int column) {
 		// TODO: Use uint as a parameter type to ensure positivity here
 		cursor_position.line   = int.max(line, 0);
 		cursor_position.column = int.max(column, 0);
 
 		// Ensure that the virtual screen contains the cursor
-		screen_offset = int.max(screen_offset, cursor_position.line - terminal.lines + 1);
+		var new_offset = cursor_position.line - terminal.lines + 1;
+		if (new_offset > screen_offset)
+			move_screen(new_offset);
 
 		// Add enough lines to make the line index valid
 		int lines_to_add = cursor_position.line - get_line_count() + 1;
-		var whitespace = Utilities.repeat_string("\n", lines_to_add);
+		var lines = Utilities.repeat_string("\n", lines_to_add);
+		if (lines.length > 0) {
+			Gtk.TextIter end;
+			get_end_iter(out end);
+			insert(ref end, lines, lines.length);
+		}
 
 		// Add enough whitespace to make the column index valid
 		Gtk.TextIter iter;
-		get_end_iter(out iter);
-		int columns_to_add = cursor_position.column - iter.get_chars_in_line();
-		whitespace += Utilities.repeat_string(" ", columns_to_add);
-
-		if (whitespace != "") {
-			Gtk.TextIter end;
-			get_end_iter(out end);
-			insert(ref end, whitespace, whitespace.length);
-		}
+		get_iter_at_line(out iter, cursor_position.line);
+		iter.forward_to_line_end();
+		int columns_to_add = cursor_position.column - iter.get_line_offset();
+		var whitespace = Utilities.repeat_string(" ", columns_to_add);
+		if (whitespace.length > 0)
+			insert(ref iter, whitespace, whitespace.length);
 
 		cursor_position_changed(cursor_position);
 	}
@@ -790,12 +827,18 @@ public class TerminalOutput : Gtk.TextBuffer {
 	private void erase_line_range(int line, int start_position = 0, int end_position = -1) {
 		Gtk.TextIter start;
 		Gtk.TextIter end;
-		get_iter_at_line_offset(out start, line, start_position);
-		if (end_position < 0) {
-			get_iter_at_line(out end, line);
+		get_iter_at_line(out start, line);
+		if (start_position < start.get_chars_in_line())
+			start.set_line_offset(start_position);
+		else
+			start.forward_to_line_end();
+
+		get_iter_at_line(out end, line);
+		if (end_position < 0 || end.get_chars_in_line() < end_position) {
 			end.forward_to_line_end();
 		} else
-			get_iter_at_line_offset(out end, line, end_position);
+			end.set_line_offset(end_position);
+
 		this.delete(ref start, ref end);
 
 		line_updated(line);

@@ -133,7 +133,7 @@ public class TerminalWidget : Gtk.EventBox, NestingContainerChild {
 
 	protected override void get_preferred_height(out int minimum_height, out int natural_height) {
 		natural_height = terminal_view.terminal_output_view.get_vertical_padding() +
-				(terminal.lines * Settings.get_default().character_height);
+				((terminal.lines-1) * Settings.get_default().character_height);
 		minimum_height = 2;
 	}
 

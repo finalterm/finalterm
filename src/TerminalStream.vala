@@ -255,6 +255,11 @@ public class TerminalStream : Object {
 			INVOKE_G2_CHARACTER_SET_AS_GR,
 			INVOKE_G1_CHARACTER_SET_AS_GR,
 
+			INDEX,
+			NEXT_LINE,
+			TAB_SET,
+			REVERSE_INDEX,
+
 			USER_DEFINED_KEYS,
 			REQUEST_STATUS_STRING,
 			SET_TERMCAP_DATA,
@@ -426,10 +431,13 @@ public class TerminalStream : Object {
 			add_esc_sequence_pattern(ControlSequenceType.FORWARD_INDEX, "9");
 			add_esc_sequence_pattern(ControlSequenceType.APPLICATION_KEYPAD, "=");
 			add_esc_sequence_pattern(ControlSequenceType.NORMAL_KEYPAD, ">");
+			add_esc_sequence_pattern(ControlSequenceType.INDEX, "D");
+			add_esc_sequence_pattern(ControlSequenceType.NEXT_LINE, "E");
 			add_esc_sequence_pattern(ControlSequenceType.CURSOR_TO_LOWER_LEFT_CORNER_OF_SCREEN, "F");
 			add_esc_sequence_pattern(ControlSequenceType.FULL_RESET, "c");
 			add_esc_sequence_pattern(ControlSequenceType.MEMORY_LOCK, "l");
 			add_esc_sequence_pattern(ControlSequenceType.MEMORY_UNLOCK, "m");
+			add_esc_sequence_pattern(ControlSequenceType.REVERSE_INDEX, "M");
 			add_esc_sequence_pattern(ControlSequenceType.INVOKE_G2_CHARACTER_SET_AS_GL, "n");
 			add_esc_sequence_pattern(ControlSequenceType.INVOKE_G3_CHARACTER_SET_AS_GL, "o");
 			add_esc_sequence_pattern(ControlSequenceType.INVOKE_G3_CHARACTER_SET_AS_GR, "|");
