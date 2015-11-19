@@ -124,6 +124,8 @@ public class TerminalOutput : Gtk.TextBuffer {
 	private Gtk.TextTag text_menu_tag;
 	private CursorPosition text_menu_start;
 
+	private Gee.SortedSet<int> tab_stops;
+
 	private Gee.Set<int> updated_lines;
 
 	public TerminalOutput(Terminal terminal) {
@@ -138,6 +140,8 @@ public class TerminalOutput : Gtk.TextBuffer {
 
 		updated_lines = new Gee.HashSet<int>();
 		line_updated.connect(on_line_updated);
+
+		tab_stops = new Gee.TreeSet<int>();
 
 		tags_by_text_menu = new Gee.HashMap<Gtk.TextTag,TextMenu>();
 		foreach (var text_menu in FinalTerm.text_menus_by_pattern.values)
@@ -186,9 +190,20 @@ public class TerminalOutput : Gtk.TextBuffer {
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.HORIZONTAL_TAB:
+				// VT100 specifies:
 				// Move the cursor to the next tab stop, or to the right margin
-				// if no further tab stops are present on the line
-				print_text("\t");
+				// if no further tab stops are present on the line, but xterm
+				// inserts a printable tab instead of moving to the right margin?
+				var column = tab_stops.higher(cursor_position.column);
+				if (column == 0) {
+					Gtk.TextIter iter;
+					get_iter_at_line(out iter, cursor_position.line);
+					column = iter.get_chars_in_line();
+				}
+
+				move_cursor(cursor_position.line, column);
+
+				// print_text("\t");
 				line_updated(cursor_position.line);
 				break;
 
@@ -303,6 +318,50 @@ public class TerminalOutput : Gtk.TextBuffer {
 			case TerminalStream.StreamElement.ControlSequenceType.INDEX:
 				move_screen(screen_offset+1);
 				move_cursor(cursor_position.line + stream_element.get_numeric_parameter(0,1), cursor_position.column);
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.TAB_SET:
+				tab_stops.add(cursor_position.column);
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.TAB_CLEAR:
+				switch (stream_element.get_numeric_parameter(0, 0)) {
+				case 0:
+					tab_stops.remove(cursor_position.column);
+					break;
+				case 3:
+					tab_stops.clear();
+					break;
+				default:
+					print_interpretation_status(stream_element, InterpretationStatus.INVALID);
+					break;
+				}
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_BACKWARD_TABULATION:
+				var count = stream_element.get_numeric_parameter(0, 1);
+				var column = tab_stops.lower(cursor_position.column);
+				for (var i = 1; i < count; i++)
+					column = tab_stops.lower(column);
+
+				move_cursor (cursor_position.line, column);
+
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_FORWARD_TABULATION:
+				var count = stream_element.get_numeric_parameter(0, 1);
+				var column = tab_stops.higher(cursor_position.column);
+				for (var i = 1; i < count && column != 0; i++)
+					column = tab_stops.higher(column);
+
+				if (column == 0) {
+					Gtk.TextIter iter;
+					get_iter_at_line(out iter, cursor_position.line);
+					column = iter.get_chars_in_line();
+				}
+
+				move_cursor (cursor_position.line, column);
+
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.CHARACTER_POSITION_RELATIVE:

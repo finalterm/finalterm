@@ -433,6 +433,7 @@ public class TerminalStream : Object {
 			add_esc_sequence_pattern(ControlSequenceType.NORMAL_KEYPAD, ">");
 			add_esc_sequence_pattern(ControlSequenceType.INDEX, "D");
 			add_esc_sequence_pattern(ControlSequenceType.NEXT_LINE, "E");
+			add_esc_sequence_pattern(ControlSequenceType.TAB_SET, "H");
 			add_esc_sequence_pattern(ControlSequenceType.CURSOR_TO_LOWER_LEFT_CORNER_OF_SCREEN, "F");
 			add_esc_sequence_pattern(ControlSequenceType.FULL_RESET, "c");
 			add_esc_sequence_pattern(ControlSequenceType.MEMORY_LOCK, "l");
