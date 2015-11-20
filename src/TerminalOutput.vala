@@ -53,6 +53,7 @@ public class TerminalOutput : Gtk.TextBuffer {
 	// The cursor's position within the full terminal output,
 	// not its position on the screen
 	public new CursorPosition cursor_position = CursorPosition();
+	public CursorPosition? saved_cursor = null;
 
 	// Character Sets
 	private Gee.Map<unichar,unichar> graphics_set = new Gee.HashMap<unichar, unichar>();
@@ -210,6 +211,17 @@ public class TerminalOutput : Gtk.TextBuffer {
 			case TerminalStream.StreamElement.ControlSequenceType.BELL:
 				// TODO: Beep on the terminal window rather than the default display
 				Gdk.beep();
+				break;
+			case TerminalStream.StreamElement.ControlSequenceType.SAVE_CURSOR:
+				saved_cursor = cursor_position;
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.RESTORE_CURSOR:
+				if (saved_cursor == null)
+					break;
+
+				move_cursor(saved_cursor.line, saved_cursor.column);
+				saved_cursor = null;
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.APPLICATION_KEYPAD:
