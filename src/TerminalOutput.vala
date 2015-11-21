@@ -388,6 +388,18 @@ public class TerminalOutput : Gtk.TextBuffer {
 				move_cursor(cursor_position.line, cursor_position.column - stream_element.get_numeric_parameter(0, 1));
 				break;
 
+			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_NEXT_LINE:
+				// The CNL sequence moves the active position to down n lines.
+				// n is determined by the parameter (default: 1)
+				move_cursor(cursor_position.line + stream_element.get_numeric_parameter(0, 1), 0);
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_PRECEDING_LINE:
+				// The CNL sequence moves the active position to up n lines.
+				// n is determined by the parameter (default: 1)
+				move_cursor(cursor_position.line - stream_element.get_numeric_parameter(0, 1), 0);
+				break;
+
 			case TerminalStream.StreamElement.ControlSequenceType.ERASE_IN_DISPLAY_ED:
 				switch (stream_element.get_numeric_parameter(0, 0)) {
 				case 0:
