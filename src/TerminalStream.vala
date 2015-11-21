@@ -470,8 +470,8 @@ public class TerminalStream : Object {
 			add_csi_sequence_pattern(ControlSequenceType.CURSOR_FORWARD_TABULATION, "I");
 			add_csi_sequence_pattern(ControlSequenceType.ERASE_IN_DISPLAY_ED, "J");
 			add_csi_sequence_pattern(ControlSequenceType.ERASE_IN_DISPLAY_DECSED, "J", "?");
-			add_csi_sequence_pattern(ControlSequenceType.ERASE_IN_LINE_EL, "K");
 			add_csi_sequence_pattern(ControlSequenceType.ERASE_IN_LINE_DECSEL, "K", "?");
+			add_csi_sequence_pattern(ControlSequenceType.ERASE_IN_LINE_EL, "K");
 			add_csi_sequence_pattern(ControlSequenceType.INSERT_LINES, "L");
 			add_csi_sequence_pattern(ControlSequenceType.DELETE_LINES, "M");
 			add_csi_sequence_pattern(ControlSequenceType.DELETE_CHARACTERS, "P");
@@ -510,7 +510,7 @@ public class TerminalStream : Object {
 			add_csi_sequence_pattern(ControlSequenceType.SET_CONFORMANCE_LEVEL, "“p");
 			add_csi_sequence_pattern(ControlSequenceType.LOAD_LEDS, "q");
 			add_csi_sequence_pattern(ControlSequenceType.SET_CURSOR_STYLE, " q");
-			add_csi_sequence_pattern(ControlSequenceType.SELECT_CHARACTER_PROTECTION_ATTRIBUTE, "“q");
+			add_csi_sequence_pattern(ControlSequenceType.SELECT_CHARACTER_PROTECTION_ATTRIBUTE, "\"q");
 			add_csi_sequence_pattern(ControlSequenceType.SET_SCROLLING_REGION, "r");
 			add_csi_sequence_pattern(ControlSequenceType.RESTORE_DEC_PRIVATE_MODE_VALUES, "r", "?");
 			add_csi_sequence_pattern(ControlSequenceType.CHANGE_ATTRIBUTES_IN_RECTANGULAR_AREA, "$r");

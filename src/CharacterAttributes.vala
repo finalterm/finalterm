@@ -36,6 +36,7 @@ public class CharacterAttributes : Object {
 	public bool blink { get; set; }
 	public bool inverse { get; set; }
 	public bool invisible { get; set; }
+	public bool erasable { get; set; default = true; }
 
 	public bool equals(CharacterAttributes attributes) {
 		return
@@ -79,6 +80,7 @@ public class CharacterAttributes : Object {
 		blink = character_attributes.blink;
 		inverse = character_attributes.inverse;
 		invisible = character_attributes.invisible;
+		erasable = character_attributes.erasable;
 	}
 
 	public CharacterAttributes() {
@@ -341,6 +343,9 @@ public class CharacterAttributes : Object {
 
 		if (invisible)
 			tags.add(buffer.tag_table.lookup("invisible"));
+
+		if (!erasable)
+			tags.add(buffer.tag_table.lookup("non-erasable") ?? buffer.create_tag("non-erasable"));
 
 		return tags.to_array();
 	}

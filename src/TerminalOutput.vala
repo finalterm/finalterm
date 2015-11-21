@@ -443,6 +443,28 @@ public class TerminalOutput : Gtk.TextBuffer {
 				}
 				break;
 
+			case TerminalStream.StreamElement.ControlSequenceType.ERASE_IN_DISPLAY_DECSED:
+				// Same as above but will skip text with the non-erasable tag.
+				switch (stream_element.get_numeric_parameter(0, 0)) {
+				case 0:
+					erase_range_screen(get_screen_position(cursor_position), {-1, -1}, true);
+					break;
+				case 1:
+					erase_range_screen({1, 1}, get_screen_position(cursor_position), true);
+					break;
+				case 2:
+					erase_range_screen({1, 1}, {terminal.lines, terminal.columns}, true);
+					break;
+
+				case 3:
+					print_interpretation_status(stream_element, InterpretationStatus.UNSUPPORTED);
+					break;
+				default:
+					print_interpretation_status(stream_element, InterpretationStatus.INVALID);
+					break;
+				}
+				break;
+
 			case TerminalStream.StreamElement.ControlSequenceType.ERASE_IN_LINE_EL:
 				switch (stream_element.get_numeric_parameter(0, 0)) {
 				case 0:
@@ -458,6 +480,24 @@ public class TerminalOutput : Gtk.TextBuffer {
 				case 2:
 					// Erase all of the line, inclusive
 					erase_line_range(cursor_position.line);
+					break;
+				default:
+					print_interpretation_status(stream_element, InterpretationStatus.INVALID);
+					break;
+				}
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.ERASE_IN_LINE_DECSEL:
+				// Same as above but will skip text with the non-erasable tag.
+				switch (stream_element.get_numeric_parameter(0, 0)) {
+				case 0:
+					erase_line_range(cursor_position.line, cursor_position.column, -1, true);
+					break;
+				case 1:
+					erase_line_range(cursor_position.line, 0, cursor_position.column, true);
+					break;
+				case 2:
+					erase_line_range(cursor_position.line, 0, -1, true);
 					break;
 				default:
 					print_interpretation_status(stream_element, InterpretationStatus.INVALID);
@@ -498,6 +538,21 @@ public class TerminalOutput : Gtk.TextBuffer {
 
 			case TerminalStream.StreamElement.ControlSequenceType.CHARACTER_ATTRIBUTES:
 				current_attributes = new CharacterAttributes.from_stream_element(stream_element, current_attributes);
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.SELECT_CHARACTER_PROTECTION_ATTRIBUTE:
+				switch (stream_element.get_numeric_parameter(0, 0)) {
+				case 0:
+				case 1:
+					current_attributes.erasable = false;
+					break;
+				case 2:
+					current_attributes.erasable = true;
+					break;
+				default:
+					print_interpretation_status(stream_element, InterpretationStatus.INVALID);
+					break;
+				}
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.DESIGNATE_G0_CHARACTER_SET_VT100:
@@ -756,10 +811,10 @@ public class TerminalOutput : Gtk.TextBuffer {
 			start = iter;
 
 			// Printed text should overwrite previous content on the line
-			if (overwrite) {
+			if (overwrite && iter.get_chars_in_line()-1 > 0) {
 				iter.set_line_offset(int.min (iter.get_line_offset() + translated.char_count(), iter.get_chars_in_line()-1));
 				if (iter.get_offset() > start.get_offset())
-				this.delete(ref start, ref iter);
+					this.delete(ref start, ref iter);
 			}
 
 			end_user_action();
@@ -827,7 +882,7 @@ public class TerminalOutput : Gtk.TextBuffer {
 		Gtk.TextIter iter;
 		get_iter_at_line(out iter, cursor_position.line);
 		iter.forward_to_line_end();
-		int columns_to_add = cursor_position.column - iter.get_line_offset();
+		int columns_to_add = cursor_position.column - iter.get_line_offset() + 1;
 		var whitespace = Utilities.repeat_string(" ", columns_to_add);
 		if (whitespace.length > 0)
 			insert(ref iter, whitespace, whitespace.length);
@@ -868,49 +923,78 @@ public class TerminalOutput : Gtk.TextBuffer {
 		return get_slice(start, end, false);
 	}
 
-	private void erase_range(CursorPosition start_position, CursorPosition end_position) {
-		Gtk.TextIter start;
-		Gtk.TextIter end;
+	private void erase_range(CursorPosition start_position, CursorPosition end_position,
+							bool only_erasables = false) {
+		if (start_position.line == end_position.line) {
+			erase_line_range(start_position.line, start_position.column, end_position.column, only_erasables);
+			return;
+		}
 
-		get_iter_at_line(out start, start_position.line);
-		if (start.get_chars_in_line() > start_position.column)
-			start.forward_chars(start_position.column);
-		else
-			start.forward_to_line_end();
+		// Works because start and end position are on different lines
+		erase_line_range(start_position.line, start_position.column, -1, only_erasables);
 
-		get_iter_at_line(out end, end_position.line);
-		if (end.get_chars_in_line() > end_position.column)
-			end.forward_chars(end_position.column);
-		else
-			end.forward_to_line_end();
+		for (int i = start_position.line + 1; i < end_position.line; i++) {
+			erase_line_range(i, 0, -1, only_erasables);
+		}
 
-		this.delete(ref start, ref end);
+		erase_line_range(end_position.line, 0, end_position.column, only_erasables);
 	}
 
 	private void erase_range_screen(CursorPosition start_position = {1, 1},
-									CursorPosition end_position   = {terminal.lines, terminal.columns + 1}) {
+									CursorPosition end_position   = {terminal.lines, terminal.columns + 1},
+									bool only_erasables = false) {
 		var absolute_start_position = get_absolute_position(start_position);
 		var absolute_end_position   = get_absolute_position(end_position);
 
-		erase_range(absolute_start_position, absolute_end_position);
+		erase_range(absolute_start_position, absolute_end_position, only_erasables);
 	}
 
-	private void erase_line_range(int line, int start_position = 0, int end_position = -1) {
+	private void erase_line_range(int line, int start_position = 0, int end_position = -1,
+									bool only_erasables = false) {
 		Gtk.TextIter start;
 		Gtk.TextIter end;
 		get_iter_at_line(out start, line);
-		if (start_position < start.get_chars_in_line())
+		var line_length = start.get_chars_in_line();
+		if (start_position < line_length)
 			start.set_line_offset(start_position);
 		else
-			start.forward_to_line_end();
+			start.set_line_offset(line_length-1);
 
-		get_iter_at_line(out end, line);
-		if (end_position < 0 || end.get_chars_in_line() < end_position) {
-			end.forward_to_line_end();
-		} else
-			end.set_line_offset(end_position);
+		int end_offset = 0;
+		if (end_position < 0 || end_position >= line_length)
+			end_offset = line_length-1;
+		else
+			end_offset = end_position;
 
-		this.delete(ref start, ref end);
+		var tag = tag_table.lookup("non-erasable");
+		if (only_erasables && tag != null) {
+			end = start;
+			while (end.get_line_offset() < end_offset) {
+				start = end;
+				if (start.has_tag(tag))
+					start.forward_to_tag_toggle(tag);
+
+				if (start.get_line() != line || start.get_line_offset() >= end_offset)
+					return;
+
+				end = start;
+				end.forward_to_tag_toggle(tag);
+				if (end.get_line() != line || end.get_line_offset() > end_offset) {
+					end = start;
+					end.set_line_offset(end_offset);
+				}
+				var fill = Utilities.repeat_string(" ", end.get_offset()-start.get_offset());
+				this.delete(ref start, ref end);
+				insert(ref end, fill, fill.length);
+			}
+		}
+		else {
+			end = start;
+			end.set_line_offset(end_offset);
+			this.delete(ref start, ref end);
+			var fill = Utilities.repeat_string(" ", end.get_offset()-start.get_offset());
+			insert(ref start, fill, fill.length);
+		}
 
 		line_updated(line);
 	}
