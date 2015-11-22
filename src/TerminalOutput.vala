@@ -517,6 +517,27 @@ public class TerminalOutput : Gtk.TextBuffer {
 				}
 				break;
 
+			case TerminalStream.StreamElement.ControlSequenceType.INSERT_LINES:
+				var n = stream_element.get_numeric_parameter(0, 1);
+				Gtk.TextIter iter;
+				get_iter_at_line(out iter, cursor_position.line);
+				insert(ref iter, Utilities.repeat_string("\n", n), -1);
+				move_screen(screen_offset);
+				move_cursor(cursor_position.line, 0);
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.DELETE_LINES:
+				var n = stream_element.get_numeric_parameter(0, 1);
+				Gtk.TextIter iter;
+				get_iter_at_line(out iter, cursor_position.line);
+				iter.backward_char();
+				var end = iter;
+				end.forward_lines(n);
+				end.forward_to_line_end();
+				this.delete(ref iter, ref end);
+				move_cursor(cursor_position.line, 0);
+				break;
+
 			case TerminalStream.StreamElement.ControlSequenceType.ERASE_CHARACTERS:
 				// "Erase" means "clear" in this case (i.e. fill with whitespace)
 				print_text(Utilities.repeat_string(" ", stream_element.get_numeric_parameter(0, 1)));
