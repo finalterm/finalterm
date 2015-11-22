@@ -440,7 +440,7 @@ public class TerminalOutput : Gtk.TextBuffer {
 					 * different, but this recipe gives better results.
 					 */
 					int visible_lines = get_line_count() - screen_offset;
-					screen_offset += visible_lines;
+					move_screen(screen_offset+visible_lines);
 					move_cursor(cursor_position.line + visible_lines, cursor_position.column);
 
 					break;
@@ -860,7 +860,17 @@ public class TerminalOutput : Gtk.TextBuffer {
 	private void move_screen(int to) {
 		screen_offset = to;
 
-		int delete = get_line_count() - screen_offset - terminal.lines;
+		// Add new lines to scroll to match screen
+		var below = terminal.lines - (get_line_count() - screen_offset) + 1;
+		if (below > 0) {
+			var lines = Utilities.repeat_string("\n", below);
+			Gtk.TextIter end;
+			get_end_iter(out end);
+			insert(ref end, lines, lines.length);
+		}
+
+		// Remove extra lines below screen
+		int delete = get_line_count() - screen_offset - terminal.lines - 1;
 		if (delete < 1)
 			return;
 

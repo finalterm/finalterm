@@ -32,6 +32,7 @@ public class TerminalView : Fixed {
 
 	private ProgressBar progress_bar;
 	private Label progress_label;
+	private StatusBar status_bar;
 
 	public TerminalView(Terminal terminal) {
 		this.terminal = terminal;
@@ -57,8 +58,8 @@ public class TerminalView : Fixed {
 		progress_bar = new ProgressBar();
 		progress_bar.no_show_all = true;
 		box.add(progress_bar);
-
-		box.add(new StatusBar(terminal));
+		status_bar = new StatusBar(terminal);
+		box.add(status_bar);
 	}
 
 	public void show_progress(int percentage, string label = "") {
@@ -75,6 +76,12 @@ public class TerminalView : Fixed {
 
 	public bool window_has_focus() {
 		return (get_toplevel() as Gtk.Window).has_toplevel_focus;
+	}
+
+	protected override void get_preferred_height(out int minimum_height, out int natural_height) {
+		status_bar.get_preferred_height(null, out natural_height);
+		natural_height += (terminal.lines * Settings.get_default().character_height);
+		minimum_height = 2;
 	}
 }
 
@@ -404,14 +411,9 @@ public class TerminalOutputView : ScrolledWindow {
 				Settings.get_default().character_width;
 	}
 
-	public int get_vertical_padding() {
-		return 0;
-	}
-
 	public override void size_allocate (Allocation box) {
 		base.size_allocate (box);
-		int lines = (box.height - get_vertical_padding()) /
-				Settings.get_default().character_height;
+		int lines = box.height / Settings.get_default().character_height;
 		int columns = (box.width - get_horizontal_padding()) /
 				Settings.get_default().character_width;
 
