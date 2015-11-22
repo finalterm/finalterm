@@ -613,6 +613,45 @@ public class TerminalOutput : Gtk.TextBuffer {
 				//print_interpretation_status(stream_element, InterpretationStatus.UNSUPPORTED);
 				break;
 
+			case TerminalStream.StreamElement.ControlSequenceType.INSERT_COLUMNS:
+				var n = stream_element.get_numeric_parameter(0, 1);
+				Gtk.TextIter iter;
+				for (int i = screen_offset; i <= terminal.lines; i++) {
+					string fill;
+					get_iter_at_line(out iter, i);
+					var length = iter.get_chars_in_line()-1;
+					if (length < cursor_position.column) {
+						iter.set_line_offset(length);
+						fill = Utilities.repeat_string(" ", n + (cursor_position.column - length));
+					} else {
+						iter.set_line_offset(cursor_position.column);
+						fill = Utilities.repeat_string(" ", n);
+					}
+					insert(ref iter, fill, -1);
+					if (iter.get_chars_in_line() > terminal.columns) {
+						iter.set_line_offset(terminal.columns);
+						var end = iter;
+						end.set_line_offset(iter.get_chars_in_line()-1);
+						this.delete(ref iter, ref end);
+					}
+				}
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.DELETE_COLUMNS:
+				var n = stream_element.get_numeric_parameter(0, 1);
+				Gtk.TextIter start, end;
+				for (int i = screen_offset; i <= terminal.lines; i++) {
+					get_iter_at_line(out start, i);
+					if (start.get_chars_in_line() <= cursor_position.column + n)
+						continue;
+
+					start.set_line_offset(cursor_position.column);
+					end = start;
+					end.forward_chars(n);
+					this.delete(ref start, ref end);
+				}
+				break;
+
 			case TerminalStream.StreamElement.ControlSequenceType.SET_TEXT_PARAMETERS:
 				switch (stream_element.get_numeric_parameter(0, -1)) {
 				case 0:

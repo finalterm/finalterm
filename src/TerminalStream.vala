@@ -536,8 +536,8 @@ public class TerminalStream : Object {
 			add_csi_sequence_pattern(ControlSequenceType.SELECT_LOCATOR_EVENTS, "’{");
 			add_csi_sequence_pattern(ControlSequenceType.SELECTIVE_ERASE_RECTANGULAR_AREA, "${");
 			add_csi_sequence_pattern(ControlSequenceType.REQUEST_LOCATOR_POSITION, "’|");
-			add_csi_sequence_pattern(ControlSequenceType.INSERT_COLUMNS, " }");
-			add_csi_sequence_pattern(ControlSequenceType.DELETE_COLUMNS, " ~");
+			add_csi_sequence_pattern(ControlSequenceType.INSERT_COLUMNS, "'}");
+			add_csi_sequence_pattern(ControlSequenceType.DELETE_COLUMNS, "'~");
 
 			// All xterm OSC control sequences
 			// See http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
