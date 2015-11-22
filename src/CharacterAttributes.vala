@@ -336,7 +336,7 @@ public class CharacterAttributes : Object {
 
 		// Blink appears as Bold according to xterm specification
 		if (bold || blink)
-			tags.add(buffer.tag_table.lookup("bold") ?? buffer.create_tag("bold", "bold", Pango.Weight.BOLD));
+			tags.add(buffer.tag_table.lookup("bold") ?? buffer.create_tag("bold", "weight", Pango.Weight.BOLD));
 
 		if (underlined)
 			tags.add(buffer.tag_table.lookup("underline") ?? buffer.create_tag("underline", "underline", Pango.Underline.SINGLE));
