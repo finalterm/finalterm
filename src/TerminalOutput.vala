@@ -551,6 +551,18 @@ public class TerminalOutput : Gtk.TextBuffer {
 						cursor_position.column + stream_element.get_numeric_parameter(0, 1));
 				break;
 
+			case TerminalStream.StreamElement.ControlSequenceType.SCROLL_UP_LINES:
+				var n = stream_element.get_numeric_parameter(0, 1);
+				move_screen(screen_offset-n);
+				move_cursor(cursor_position.line-n, cursor_position.column);
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.SCROLL_DOWN_LINES:
+				var n = stream_element.get_numeric_parameter(0, 1);
+				move_screen(screen_offset+n);
+				move_cursor(cursor_position.line+n, cursor_position.column);
+				break;
+
 			case TerminalStream.StreamElement.ControlSequenceType.HORIZONTAL_AND_VERTICAL_POSITION:
 			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_POSITION:
 				int line   = stream_element.get_numeric_parameter(0, 1);
