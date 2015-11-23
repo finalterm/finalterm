@@ -297,7 +297,7 @@ public class TerminalOutput : Gtk.TextBuffer {
 
 			case TerminalStream.StreamElement.ControlSequenceType.INSERT_CHARACTERS:
 				var restore = cursor_position;
-				print_text(Utilities.repeat_string(" ", stream_element.get_numeric_parameter(0, 1)), false);
+				print_text(string.nfill(stream_element.get_numeric_parameter(0, 1), ' '), false);
 
 				// Shouldn't move cursor
 				move_cursor(restore.line, restore.column);
@@ -521,7 +521,7 @@ public class TerminalOutput : Gtk.TextBuffer {
 				var n = stream_element.get_numeric_parameter(0, 1);
 				Gtk.TextIter iter;
 				get_iter_at_line(out iter, cursor_position.line);
-				insert(ref iter, Utilities.repeat_string("\n", n), -1);
+				insert(ref iter, string.nfill(n, '\n'), -1);
 				move_screen(screen_offset);
 				move_cursor(cursor_position.line, 0);
 				break;
@@ -540,7 +540,7 @@ public class TerminalOutput : Gtk.TextBuffer {
 
 			case TerminalStream.StreamElement.ControlSequenceType.ERASE_CHARACTERS:
 				// "Erase" means "clear" in this case (i.e. fill with whitespace)
-				print_text(Utilities.repeat_string(" ", stream_element.get_numeric_parameter(0, 1)));
+				print_text(string.nfill(stream_element.get_numeric_parameter(0, 1), ' '));
 
 				line_updated(cursor_position.line);
 				break;
@@ -601,8 +601,7 @@ public class TerminalOutput : Gtk.TextBuffer {
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.DESIGNATE_G0_CHARACTER_SET_VT100:
-				// The program "top" emits this sequence repeatedly
-				switch (stream_element.text[stream_element.text.length-1]) {
+				switch (stream_element.get_numeric_parameter(0, 0)) {
 					case 'B':
 						active_character_set = default_set;
 						break;
@@ -610,28 +609,20 @@ public class TerminalOutput : Gtk.TextBuffer {
 						active_character_set = graphics_set;
 						break;
 				}
-				//print_interpretation_status(stream_element, InterpretationStatus.UNSUPPORTED);
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.INSERT_COLUMNS:
 				var n = stream_element.get_numeric_parameter(0, 1);
 				Gtk.TextIter iter;
 				for (int i = screen_offset; i <= terminal.lines; i++) {
-					string fill;
-					get_iter_at_line(out iter, i);
-					var length = iter.get_chars_in_line()-1;
-					if (length < cursor_position.column) {
-						iter.set_line_offset(length);
-						fill = Utilities.repeat_string(" ", n + (cursor_position.column - length));
-					} else {
-						iter.set_line_offset(cursor_position.column);
-						fill = Utilities.repeat_string(" ", n);
-					}
-					insert(ref iter, fill, -1);
+					validate_position({i, cursor_position.column});
+
+					get_iter_at_line_offset(out iter, i, cursor_position.column);
+					insert(ref iter, string.nfill(n, ' '), -1);
+
 					if (iter.get_chars_in_line() > terminal.columns) {
 						iter.set_line_offset(terminal.columns);
-						var end = iter;
-						end.set_line_offset(iter.get_chars_in_line()-1);
+						get_iter_at_line_offset(out end, get_line_length(i))
 						this.delete(ref iter, ref end);
 					}
 				}
@@ -932,14 +923,8 @@ public class TerminalOutput : Gtk.TextBuffer {
 	private void move_screen(int to) {
 		screen_offset = to;
 
-		// Add new lines to scroll to match screen
-		var below = terminal.lines - (get_line_count() - screen_offset) + 1;
-		if (below > 0) {
-			var lines = Utilities.repeat_string("\n", below);
-			Gtk.TextIter end;
-			get_end_iter(out end);
-			insert(ref end, lines, lines.length);
-		}
+		// Validate bottom of screen
+		validate_position({screen_offset + terminal.lines, 0});
 
 		// Remove extra lines below screen
 		int delete = get_line_count() - screen_offset - terminal.lines - 1;
@@ -963,23 +948,24 @@ public class TerminalOutput : Gtk.TextBuffer {
 		if (new_offset > screen_offset)
 			move_screen(new_offset);
 
+		validate_position(cursor_position);
+	}
+
+	private void validate_position(CursorPosition position) {
 		// Add enough lines to make the line index valid
-		int lines_to_add = cursor_position.line - get_line_count() + 1;
-		var lines = Utilities.repeat_string("\n", lines_to_add);
-		if (lines.length > 0) {
+		int lines_to_add = position.line - get_line_count() + 1;
+		if (lines_to_add > 0) {
 			Gtk.TextIter end;
 			get_end_iter(out end);
-			insert(ref end, lines, lines.length);
+			insert(ref end, string.nfill(lines_to_add, '\n'), -1);
 		}
 
 		// Add enough whitespace to make the column index valid
 		Gtk.TextIter iter;
-		get_iter_at_line(out iter, cursor_position.line);
-		iter.forward_to_line_end();
-		int columns_to_add = cursor_position.column - iter.get_line_offset() + 1;
-		var whitespace = Utilities.repeat_string(" ", columns_to_add);
-		if (whitespace.length > 0)
-			insert(ref iter, whitespace, whitespace.length);
+		get_iter_at_line_offset(out iter, position.line, get_line_length(position.line));
+		int columns_to_add = position.column - iter.get_line_offset();
+		if (columns_to_add > 0)
+			insert(ref iter, string.nfill(columns_to_add, ' '), -1);
 
 		cursor_position_changed(cursor_position);
 	}
@@ -1045,48 +1031,38 @@ public class TerminalOutput : Gtk.TextBuffer {
 
 	private void erase_line_range(int line, int start_position = 0, int end_position = -1,
 									bool only_erasables = false) {
-		Gtk.TextIter start;
-		Gtk.TextIter end;
+		Gtk.TextIter start, end;
 		get_iter_at_line(out start, line);
-		var line_length = start.get_chars_in_line();
-		if (start_position < line_length)
-			start.set_line_offset(start_position);
-		else
-			start.set_line_offset(line_length-1);
+		var end_offset = end_position < 0 ? get_line_length(line) : end_position;
+		if (end_offset <= start_position)
+			return;
 
-		int end_offset = 0;
-		if (end_position < 0 || end_position >= line_length)
-			end_offset = line_length-1;
-		else
-			end_offset = end_position;
+		validate_position({line, end_offset});
+		get_iter_at_line_offset(out start, line, start_position);
+		get_iter_at_line_offset(out end, line, end_offset);
 
 		var tag = tag_table.lookup("non-erasable");
 		if (only_erasables && tag != null) {
-			end = start;
-			while (end.get_line_offset() < end_offset) {
-				start = end;
+			do {
 				if (start.has_tag(tag))
 					start.forward_to_tag_toggle(tag);
 
 				if (start.get_line() != line || start.get_line_offset() >= end_offset)
-					return;
+					break;
 
 				end = start;
 				end.forward_to_tag_toggle(tag);
-				if (end.get_line() != line || end.get_line_offset() > end_offset) {
-					end = start;
-					end.set_line_offset(end_offset);
-				}
-				var fill = Utilities.repeat_string(" ", end.get_offset()-start.get_offset());
+				if (end.get_line() != line || end.get_line_offset() > end_offset)
+					get_iter_at_line_offset(out end, line, end_offset);
+
+				var fill = string.nfill(end.get_offset()-start.get_offset(), ' ');
 				this.delete(ref start, ref end);
 				insert(ref end, fill, fill.length);
-			}
+			} while (end.get_line_offset() < end_offset);
 		}
 		else {
-			end = start;
-			end.set_line_offset(end_offset);
 			this.delete(ref start, ref end);
-			var fill = Utilities.repeat_string(" ", end.get_offset()-start.get_offset());
+			var fill = string.nfill(end.get_offset()-start.get_offset(), ' ');
 			insert(ref start, fill, fill.length);
 		}
 

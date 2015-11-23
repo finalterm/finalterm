@@ -526,16 +526,16 @@ public class TerminalStream : Object {
 			add_csi_sequence_pattern(ControlSequenceType.RESTORE_CURSOR_ANSI_SYS, "u");
 			add_csi_sequence_pattern(ControlSequenceType.SET_MARGIN_BELL_VOLUME, " u");
 			add_csi_sequence_pattern(ControlSequenceType.COPY_RECTANGULAR_AREA, "$v");
-			add_csi_sequence_pattern(ControlSequenceType.ENABLE_FILTER_RECTANGLE, "’w");
+			add_csi_sequence_pattern(ControlSequenceType.ENABLE_FILTER_RECTANGLE, "'w");
 			add_csi_sequence_pattern(ControlSequenceType.REQUEST_TERMINAL_PARAMETERS, "x");
 			add_csi_sequence_pattern(ControlSequenceType.SELECT_ATTRIBUTE_CHANGE_EXTENT, "*x");
 			add_csi_sequence_pattern(ControlSequenceType.REQUEST_CHECKSUM_OF_RECTANGULAR_AREA, "*y");
 			add_csi_sequence_pattern(ControlSequenceType.FILL_RECTANGULAR_AREA, "$x");
-			add_csi_sequence_pattern(ControlSequenceType.ENABLE_LOCATOR_REPORTING, "’z");
+			add_csi_sequence_pattern(ControlSequenceType.ENABLE_LOCATOR_REPORTING, "'z");
 			add_csi_sequence_pattern(ControlSequenceType.ERASE_RECTANGULAR_AREA, "$z");
-			add_csi_sequence_pattern(ControlSequenceType.SELECT_LOCATOR_EVENTS, "’{");
+			add_csi_sequence_pattern(ControlSequenceType.SELECT_LOCATOR_EVENTS, "'{");
 			add_csi_sequence_pattern(ControlSequenceType.SELECTIVE_ERASE_RECTANGULAR_AREA, "${");
-			add_csi_sequence_pattern(ControlSequenceType.REQUEST_LOCATOR_POSITION, "’|");
+			add_csi_sequence_pattern(ControlSequenceType.REQUEST_LOCATOR_POSITION, "'|");
 			add_csi_sequence_pattern(ControlSequenceType.INSERT_COLUMNS, "'}");
 			add_csi_sequence_pattern(ControlSequenceType.DELETE_COLUMNS, "'~");
 
