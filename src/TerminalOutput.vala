@@ -600,6 +600,31 @@ public class TerminalOutput : Gtk.TextBuffer {
 				}
 				break;
 
+			case TerminalStream.StreamElement.ControlSequenceType.FILL_RECTANGULAR_AREA:
+				var fill = (char) stream_element.get_numeric_parameter(0, (int)' ');
+				CursorPosition tl = {stream_element.get_numeric_parameter(1, 0),
+									stream_element.get_numeric_parameter(2, 0)};
+				CursorPosition br = {stream_element.get_numeric_parameter(3, 0),
+									stream_element.get_numeric_parameter(4, 0)};
+				fill_rect_screen(tl, br, fill);
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.ERASE_RECTANGULAR_AREA:
+				CursorPosition tl = {stream_element.get_numeric_parameter(0, 0),
+									stream_element.get_numeric_parameter(1, 0)};
+				CursorPosition br = {stream_element.get_numeric_parameter(2, 0),
+									stream_element.get_numeric_parameter(3, 0)};
+				erase_rect_screen(tl, br);
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.SELECTIVE_ERASE_RECTANGULAR_AREA:
+				CursorPosition tl = {stream_element.get_numeric_parameter(0, 0),
+									stream_element.get_numeric_parameter(1, 0)};
+				CursorPosition br = {stream_element.get_numeric_parameter(2, 0),
+									stream_element.get_numeric_parameter(3, 0)};
+				erase_rect_screen(tl, br, true);
+				break;
+
 			case TerminalStream.StreamElement.ControlSequenceType.DESIGNATE_G0_CHARACTER_SET_VT100:
 				switch (stream_element.get_numeric_parameter(0, 0)) {
 					case 'B':
@@ -1067,6 +1092,48 @@ public class TerminalOutput : Gtk.TextBuffer {
 		}
 
 		line_updated(line);
+	}
+
+	private void erase_rect (CursorPosition tl, CursorPosition br,
+								bool only_erasables = false) {
+		for(var i = tl.line; i <= br.line; i++){
+			erase_line_range(i, tl.column, br.column, only_erasables);
+		}
+
+	}
+
+	private void erase_rect_screen (CursorPosition tl, CursorPosition br,
+							bool only_erasables = false) {
+		erase_rect(get_absolute_position(tl),
+					get_absolute_position(br), only_erasables);
+	}
+
+	private void fill_rect(CursorPosition tl, CursorPosition br,
+							char fill = ' ') {
+		for(var i = tl.line; i <= br.line; i++) {
+			validate_position({i, br.column});
+
+			Gtk.TextIter start, end;
+			get_iter_at_line_offset(out start, i, tl.column);
+			get_iter_at_line_offset(out end, i, br.column);
+			this.delete(ref start, ref end);
+			insert(ref start, string.nfill(br.column - tl.column, fill), -1);
+
+			line_updated(i);
+		}
+	}
+
+	private void fill_rect_screen(CursorPosition tl, CursorPosition br,
+							char fill = ' ') {
+		fill_rect(get_absolute_position(tl),
+					get_absolute_position(br), fill);
+	}
+
+	private int get_line_length(int line) {
+		Gtk.TextIter iter;
+		get_iter_at_line(out iter, line);
+		var length = iter.get_chars_in_line();
+		return get_line_count()-1 > line && length > 0 ? length - 1 : length;
 	}
 
 	public signal void set_prompt(string prompt);
