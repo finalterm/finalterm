@@ -638,7 +638,7 @@ public class TerminalOutput : Gtk.TextBuffer {
 
 			case TerminalStream.StreamElement.ControlSequenceType.INSERT_COLUMNS:
 				var n = stream_element.get_numeric_parameter(0, 1);
-				Gtk.TextIter iter;
+				Gtk.TextIter iter, end;
 				for (int i = screen_offset; i <= terminal.lines; i++) {
 					validate_position({i, cursor_position.column});
 
@@ -647,7 +647,7 @@ public class TerminalOutput : Gtk.TextBuffer {
 
 					if (iter.get_chars_in_line() > terminal.columns) {
 						iter.set_line_offset(terminal.columns);
-						get_iter_at_line_offset(out end, get_line_length(i));
+						get_iter_at_line_offset(out end, i, get_line_length(i));
 						this.delete(ref iter, ref end);
 					}
 				}
