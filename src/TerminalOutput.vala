@@ -547,8 +547,14 @@ public class TerminalOutput : Gtk.TextBuffer {
 
 			case TerminalStream.StreamElement.ControlSequenceType.DELETE_CHARACTERS:
 				// This control function deletes one or more characters from the cursor position to the right
-				erase_line_range(cursor_position.line, cursor_position.column,
-						cursor_position.column + stream_element.get_numeric_parameter(0, 1));
+				Gtk.TextIter start, end;
+				get_iter_at_line_offset(out start, cursor_position.line, cursor_position.column);
+				get_iter_at_line_offset(out end, cursor_position.line,
+					cursor_position.column + stream_element.get_numeric_parameter(0, 1));
+				this.delete(ref start, ref end);
+
+				line_updated(cursor_position.line);
+
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.SCROLL_UP_LINES:
@@ -912,7 +918,7 @@ public class TerminalOutput : Gtk.TextBuffer {
 
 			// Printed text should overwrite previous content on the line
 			if (overwrite && iter.get_chars_in_line()-1 > 0) {
-				iter.set_line_offset(int.min (iter.get_line_offset() + translated.char_count(), iter.get_chars_in_line()-1));
+				iter.set_line_offset(int.min (iter.get_line_offset() + translated.char_count(), iter.get_chars_in_line()));
 				if (iter.get_offset() > start.get_offset())
 					this.delete(ref start, ref iter);
 			}
