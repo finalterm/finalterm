@@ -55,7 +55,7 @@ public class TerminalStream : Object {
 
 	// All escape sequence end characters listed in the xterm specification (VT100 mode)
 	// NOTE: The characters "P" (DCS), "[" (CSI) and "]" (OSC) are excluded here
-	private const string ESCAPE_SEQUENCE_END_CHARACTERS = "DEHMNOVWXZ\\^_FGLMN34568@G0AB4C5RQKYE6ZH7=6789=>Fclmno|}~";
+	private const string ESCAPE_SEQUENCE_END_CHARACTERS = "DEHMNOVWXZ\\^_FGLMN34568@G0AB4C5RQKYE6ZH7=6789=>Fclmno|}~f<`";
 
 	private const string DCS_SEQUENCE_END_CHARACTERS = "\x9C";
 
@@ -254,6 +254,8 @@ public class TerminalStream : Object {
 			INVOKE_G3_CHARACTER_SET_AS_GR,
 			INVOKE_G2_CHARACTER_SET_AS_GR,
 			INVOKE_G1_CHARACTER_SET_AS_GR,
+			SINGLE_SHIFT_G2_CHARACTER_SET,
+			SINGLE_SHIFT_G3_CHARACTER_SET,
 
 			INDEX,
 			NEXT_LINE,
@@ -387,7 +389,7 @@ public class TerminalStream : Object {
 		private const string[] OSC_FINAL_CHARACTERS = { "\x07", "\x9C", "\\" };
 
 		private const string[] CHARACTER_SET_DESIGNATOR_FINAL_CHARACTERS =
-				{ "0", "A", "B", "4", "C", "5", "R", "Q", "K", "Y", "E", "6", "Z", "H", "7", "=" };
+				{ "0", "4", "5", "6", "7", "9", "A", "B", "C", "E", "H", "K", "Q", "R", "Y", "Z", "f", "=", "<", ">"};
 
 		static construct {
 			// All xterm single-character functions (except Space (TODO?))
@@ -425,6 +427,20 @@ public class TerminalStream : Object {
 			add_designate_character_set_sequence_pattern(ControlSequenceType.DESIGNATE_G1_CHARACTER_SET_VT300, "-");
 			add_designate_character_set_sequence_pattern(ControlSequenceType.DESIGNATE_G2_CHARACTER_SET_VT300, ".");
 			add_designate_character_set_sequence_pattern(ControlSequenceType.DESIGNATE_G3_CHARACTER_SET_VT300, "/");
+			add_sequence_pattern(ControlSequenceType.DESIGNATE_G0_CHARACTER_SET_VT100, ESC_PATTERN_START + "\\((%6)", '6');
+			add_sequence_pattern(ControlSequenceType.DESIGNATE_G1_CHARACTER_SET_VT100, ESC_PATTERN_START + "\\)(%6)", '6');
+			add_sequence_pattern(ControlSequenceType.DESIGNATE_G2_CHARACTER_SET_VT220, ESC_PATTERN_START + "\\*(%6)", '6');
+			add_sequence_pattern(ControlSequenceType.DESIGNATE_G3_CHARACTER_SET_VT220, ESC_PATTERN_START + "\\+(%6)", '6');
+			add_sequence_pattern(ControlSequenceType.DESIGNATE_G1_CHARACTER_SET_VT300, ESC_PATTERN_START + "-(%6)", '6');
+			add_sequence_pattern(ControlSequenceType.DESIGNATE_G2_CHARACTER_SET_VT300, ESC_PATTERN_START + "\\.(%6)", '6');
+			add_sequence_pattern(ControlSequenceType.DESIGNATE_G3_CHARACTER_SET_VT300, ESC_PATTERN_START + "/(%6)", '6');
+			add_sequence_pattern(ControlSequenceType.DESIGNATE_G0_CHARACTER_SET_VT100, ESC_PATTERN_START + "\\((%5)", '5');
+			add_sequence_pattern(ControlSequenceType.DESIGNATE_G1_CHARACTER_SET_VT100, ESC_PATTERN_START + "\\)(%5)", '5');
+			add_sequence_pattern(ControlSequenceType.DESIGNATE_G2_CHARACTER_SET_VT220, ESC_PATTERN_START + "\\*(%5)", '5');
+			add_sequence_pattern(ControlSequenceType.DESIGNATE_G3_CHARACTER_SET_VT220, ESC_PATTERN_START + "\\+(%5)", '5');
+			add_sequence_pattern(ControlSequenceType.DESIGNATE_G1_CHARACTER_SET_VT300, ESC_PATTERN_START + "-(%5)", '5');
+			add_sequence_pattern(ControlSequenceType.DESIGNATE_G2_CHARACTER_SET_VT300, ESC_PATTERN_START + "\\.(%5)", '5');
+			add_sequence_pattern(ControlSequenceType.DESIGNATE_G3_CHARACTER_SET_VT300, ESC_PATTERN_START + "/(%5)", '5');
 			add_esc_sequence_pattern(ControlSequenceType.BACK_INDEX, "6");
 			add_esc_sequence_pattern(ControlSequenceType.SAVE_CURSOR, "7");
 			add_esc_sequence_pattern(ControlSequenceType.RESTORE_CURSOR, "8");
@@ -434,6 +450,8 @@ public class TerminalStream : Object {
 			add_esc_sequence_pattern(ControlSequenceType.INDEX, "D");
 			add_esc_sequence_pattern(ControlSequenceType.NEXT_LINE, "E");
 			add_esc_sequence_pattern(ControlSequenceType.TAB_SET, "H");
+			add_esc_sequence_pattern(ControlSequenceType.SINGLE_SHIFT_G2_CHARACTER_SET, "N");
+			add_esc_sequence_pattern(ControlSequenceType.SINGLE_SHIFT_G3_CHARACTER_SET, "O");
 			add_esc_sequence_pattern(ControlSequenceType.CURSOR_TO_LOWER_LEFT_CORNER_OF_SCREEN, "F");
 			add_esc_sequence_pattern(ControlSequenceType.FULL_RESET, "c");
 			add_esc_sequence_pattern(ControlSequenceType.MEMORY_LOCK, "l");

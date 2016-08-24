@@ -57,6 +57,7 @@ vala_precompile(VALA_C
 	src/FinalTerm.vala
 	src/Terminal.vala
 	src/TerminalStream.vala
+	src/Encoder.vala
 	src/TerminalOutput.vala
 	src/CharacterAttributes.vala
 	src/TerminalView.vala

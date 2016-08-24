@@ -55,47 +55,6 @@ public class TerminalOutput : Gtk.TextBuffer {
 	public new CursorPosition cursor_position = CursorPosition();
 	public CursorPosition? saved_cursor = null;
 
-	// Character Sets
-	private Gee.Map<unichar,unichar> graphics_set = new Gee.HashMap<unichar, unichar>();
-	private Gee.Map<unichar,unichar> default_set = new Gee.HashMap<unichar, unichar>();
-
-	private Gee.Map<unichar,unichar> active_character_set;
-	private void load_character_sets() {
-		graphics_set['`'] = 0x2666;
-		graphics_set['a'] = 0x1F67E;
-		graphics_set['b'] = 0x0009;
-		graphics_set['c'] = 0x000C;
-		graphics_set['d'] = 0x000D;
-		graphics_set['e'] = 0x000A;
-		graphics_set['f'] = 0x2218;
-		// graphics_set['g'] = ;
-		// graphics_set['h'] = ;
-		graphics_set['i'] = 0x000B;
-		graphics_set['j'] = 0x2518;
-		graphics_set['k'] = 0x2510;
-		graphics_set['l'] = 0x250C;
-		graphics_set['m'] = 0x2514;
-		graphics_set['n'] = 0x253B;
-		graphics_set['o'] = 0x23BA;
-		graphics_set['p'] = 0x23BB;
-		graphics_set['q'] = 0x2500;
-		graphics_set['r'] = 0x23BC;
-		graphics_set['s'] = 0x23BD;
-		graphics_set['t'] = 0x251C;
-		graphics_set['u'] = 0x2524;
-		graphics_set['v'] = 0x2533;
-		graphics_set['w'] = 0x252B;
-		graphics_set['x'] = 0x2502;
-		graphics_set['y'] = 0x2A7D;
-		graphics_set['z'] = 0x2A7E;
-		graphics_set['{'] = 0x03C0;
-		graphics_set['|'] = 0x2260;
-		graphics_set['}'] = 0x2265;
-		graphics_set['~'] = 0x22C5;
-
-		active_character_set = default_set;
-	}
-
 	public struct CursorPosition {
 		public int line;
 		public int column;
@@ -116,6 +75,8 @@ public class TerminalOutput : Gtk.TextBuffer {
 	private string prompt_slice;
 	private CharacterAttributes slice_attrs;
 
+	private Encoder encoder;
+
 	public string last_command = "";
 
 	public bool command_mode = false;
@@ -130,11 +91,12 @@ public class TerminalOutput : Gtk.TextBuffer {
 	private Gee.Set<int> updated_lines;
 
 	public TerminalOutput(Terminal terminal) {
-		load_character_sets();
 		this.terminal = terminal;
 
 		// Default attributes
 		current_attributes = new CharacterAttributes();
+
+		encoder = new Encoder();
 
 		screen_offset = 0;
 		move_cursor(0, 0);
@@ -628,15 +590,47 @@ public class TerminalOutput : Gtk.TextBuffer {
 				erase_rect_screen(tl, br, true);
 				break;
 
+			case TerminalStream.StreamElement.ControlSequenceType.SHIFT_IN:
+				encoder.gl = 0;
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.SHIFT_OUT:
+				encoder.gl = 1;
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.INVOKE_G2_CHARACTER_SET_AS_GL:
+				encoder.gl = 2;
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.INVOKE_G3_CHARACTER_SET_AS_GL:
+				encoder.gl = 3;
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.SINGLE_SHIFT_G2_CHARACTER_SET:
+				encoder.single_shift = 2;
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.SINGLE_SHIFT_G3_CHARACTER_SET:
+				encoder.single_shift = 3;
+				break;
+
 			case TerminalStream.StreamElement.ControlSequenceType.DESIGNATE_G0_CHARACTER_SET_VT100:
-				switch (stream_element.get_numeric_parameter(0, 0)) {
-					case 'B':
-						active_character_set = default_set;
-						break;
-					case '0':
-						active_character_set = graphics_set;
-						break;
-				}
+				encoder.setCharset(0, stream_element.get_text_parameter(0, "B"));
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.DESIGNATE_G1_CHARACTER_SET_VT100:
+			case TerminalStream.StreamElement.ControlSequenceType.DESIGNATE_G1_CHARACTER_SET_VT300:
+				encoder.setCharset(1, stream_element.get_text_parameter(0, "B"));
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.DESIGNATE_G2_CHARACTER_SET_VT220:
+			case TerminalStream.StreamElement.ControlSequenceType.DESIGNATE_G2_CHARACTER_SET_VT300:
+				encoder.setCharset(2, stream_element.get_text_parameter(0, "B"));
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.DESIGNATE_G3_CHARACTER_SET_VT220:
+			case TerminalStream.StreamElement.ControlSequenceType.DESIGNATE_G3_CHARACTER_SET_VT300:
+				encoder.setCharset(3, stream_element.get_text_parameter(0, "B"));
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.INSERT_COLUMNS:
@@ -877,14 +871,7 @@ public class TerminalOutput : Gtk.TextBuffer {
 	}
 
 	private void print_text(string text, bool overwrite = true) {
-		var translated = "";
-		for (int i = 0; i < text.length; i++) {
-			if (!text.valid_char (i))
-				continue;
-
-			var c = text.get_char(i);
-			translated += active_character_set.has_key(c) ? active_character_set[c].to_string () : c.to_string ();
-		}
+		var encoded = encoder.encode(text);
 
 		if (capturing_prompt) {
 			if (slice_attrs != current_attributes) {
@@ -897,14 +884,13 @@ public class TerminalOutput : Gtk.TextBuffer {
 				prompt_slice = "";
 				slice_attrs = current_attributes;
 			}
-
-			prompt_slice += translated;
+			prompt_slice += encoded;
 		} else {
 			begin_user_action();
 			Gtk.TextIter iter, start;
 			get_iter_at_line_offset(out iter, cursor_position.line, cursor_position.column);
 
-			insert(ref iter, translated, translated.length);
+			insert(ref iter, encoded, encoded.length);
 
 			get_iter_at_line_offset(out start, cursor_position.line, cursor_position.column);
 			var tags = current_attributes.get_text_tags(this, Settings.get_default().color_scheme, Settings.get_default().dark);
@@ -915,7 +901,7 @@ public class TerminalOutput : Gtk.TextBuffer {
 
 			// Printed text should overwrite previous content on the line
 			if (overwrite && iter.get_chars_in_line()-1 > 0) {
-				iter.set_line_offset(int.min (iter.get_line_offset() + translated.char_count(), iter.get_chars_in_line()));
+				iter.set_line_offset(int.min (iter.get_line_offset() + encoded.char_count(), iter.get_chars_in_line()));
 				if (iter.get_offset() > start.get_offset())
 					this.delete(ref start, ref iter);
 			}
@@ -923,7 +909,7 @@ public class TerminalOutput : Gtk.TextBuffer {
 			end_user_action();
 
 			// TODO: Handle double-width unicode characters and tabs
-			move_cursor(cursor_position.line, cursor_position.column + translated.char_count());
+			move_cursor(cursor_position.line, cursor_position.column + encoded.char_count());
 		}
 	}
 
