@@ -175,10 +175,12 @@ public class TerminalOutput : Gtk.TextBuffer {
 				Gdk.beep();
 				break;
 			case TerminalStream.StreamElement.ControlSequenceType.SAVE_CURSOR:
+			case TerminalStream.StreamElement.ControlSequenceType.SAVE_CURSOR_ANSI_SYS:
 				saved_cursor = cursor_position;
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.RESTORE_CURSOR:
+			case TerminalStream.StreamElement.ControlSequenceType.RESTORE_CURSOR_ANSI_SYS:
 				if (saved_cursor == null)
 					break;
 
@@ -283,6 +285,7 @@ public class TerminalOutput : Gtk.TextBuffer {
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_FORWARD:
+			case TerminalStream.StreamElement.ControlSequenceType.FORWARD_INDEX:
 				move_cursor(cursor_position.line, cursor_position.column + stream_element.get_numeric_parameter(0, 1));
 				break;
 
@@ -342,6 +345,7 @@ public class TerminalOutput : Gtk.TextBuffer {
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_BACKWARD:
+			case TerminalStream.StreamElement.ControlSequenceType.BACK_INDEX:
 				// The CUB sequence moves the active position to the left.
 				// The distance moved is determined by the parameter (default: 1)
 				move_cursor(cursor_position.line, cursor_position.column - stream_element.get_numeric_parameter(0, 1));
@@ -357,6 +361,17 @@ public class TerminalOutput : Gtk.TextBuffer {
 				// The CNL sequence moves the active position to up n lines.
 				// n is determined by the parameter (default: 1)
 				move_cursor(cursor_position.line - stream_element.get_numeric_parameter(0, 1), 0);
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.REPEAT_PRECEDING_GRAPHIC_CHARACTER:
+				var n = stream_element.get_numeric_parameter(0, 1);
+				Gtk.TextIter start, end;
+				get_iter_at_line_offset(out start, cursor_position.line, cursor_position.column - 1);
+				get_iter_at_line_offset(out end, cursor_position.line, cursor_position.column);
+				char c = get_text(start, end, true)[0];
+				insert(ref end, string.nfill(n, c), -1);
+				move_cursor(cursor_position.line, cursor_position.column + n);
+
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.ERASE_IN_DISPLAY_ED:
