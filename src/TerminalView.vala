@@ -39,7 +39,7 @@ public class TerminalView : Fixed {
 
 		var box = new Box (Orientation.VERTICAL, 5);
 		put (box, 0, 0);
-		
+
 		size_allocate.connect((alloc) => {
 			var child = Gtk.Allocation ();
 			child.x = 0;
@@ -103,9 +103,6 @@ public class TerminalOutputView : ScrolledWindow {
 		this.terminal = terminal;
 
 		view = new TextView.with_buffer (terminal.terminal_output);
-		view.editable = false;
-		view.cursor_visible = false;
-		view.wrap_mode = WrapMode.CHAR;
 		view.motion_notify_event.connect(on_motion_notify_event);
 		view.button_press_event.connect(on_button_press_event);
 		view.has_tooltip = true;
@@ -377,7 +374,7 @@ public class TerminalOutputView : ScrolledWindow {
 	}
 
 	public void scroll_to_position(TerminalOutput.CursorPosition position = {-1, -1}) {
-		if (position.line == -1 && position.column == -1) 
+		if (position.line == -1 && position.column == -1)
 			// Default: Scroll to end
 			vadjustment.value = vadjustment.upper;
 		else {

@@ -61,6 +61,7 @@ vala_precompile(VALA_C
 	src/TerminalOutput.vala
 	src/CharacterAttributes.vala
 	src/TerminalView.vala
+	src/TextView.vala
 	src/TerminalWidget.vala
 	src/NestingContainer.vala
 	src/Autocompletion.vala

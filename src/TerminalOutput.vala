@@ -170,6 +170,36 @@ public class TerminalOutput : Gtk.TextBuffer {
 				line_updated(cursor_position.line);
 				break;
 
+			case TerminalStream.StreamElement.ControlSequenceType.DEC_DOUBLE_WIDTH_LINE:
+				Gtk.TextIter start, end;
+				get_iter_at_line(out start, cursor_position.line);
+				get_iter_at_line(out end, cursor_position.line);
+				end.forward_to_line_end();
+
+				// Add tag to entire line. Text drawn in TextView.draw_layer
+				apply_tag(tag_table.lookup("double-wide") ?? create_tag("double-wide", "invisible", true), start, end);
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.DEC_DOUBLE_HEIGHT_LINE_TOP_HALF:
+				Gtk.TextIter start, end;
+				get_iter_at_line(out start, cursor_position.line);
+				get_iter_at_line(out end, cursor_position.line);
+				end.forward_to_line_end();
+
+				// Add tag to entire line. Text drawn in TextView.draw_layer
+				apply_tag(tag_table.lookup("double-top") ?? create_tag("double-top", "invisible", true), start, end);
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.DEC_DOUBLE_HEIGHT_LINE_BOTTOM_HALF:
+				Gtk.TextIter start, end;
+				get_iter_at_line(out start, cursor_position.line);
+				get_iter_at_line(out end, cursor_position.line);
+				end.forward_to_line_end();
+
+				// Add tag to entire line. Text drawn in TextView.draw_layer
+				apply_tag(tag_table.lookup("double-bottom") ?? create_tag("double-bottom", "invisible", true), start, end);
+				break;
+
 			case TerminalStream.StreamElement.ControlSequenceType.BELL:
 				// TODO: Beep on the terminal window rather than the default display
 				Gdk.beep();
@@ -911,6 +941,25 @@ public class TerminalOutput : Gtk.TextBuffer {
 			var tags = current_attributes.get_text_tags(this, Settings.get_default().color_scheme, Settings.get_default().dark);
 			foreach (var tag in tags)
 				apply_tag(tag, start, iter);
+
+			// If this is a double-wide or double-high line expand tag to the new line end
+			if (!start.ends_line())
+			{
+				var end = start;
+				end.forward_to_line_end();
+
+				var tag = tag_table.lookup("double-wide");
+				if (tag != null && start.ends_tag(tag))
+					apply_tag(tag, start, end);
+
+				tag = tag_table.lookup("double-top");
+				if (tag != null && start.ends_tag(tag))
+					apply_tag(tag, start, end);
+
+				tag = tag_table.lookup("double-bottom");
+				if (tag != null && start.ends_tag(tag))
+					apply_tag(tag, start, end);
+			}
 
 			start = iter;
 
