@@ -252,20 +252,17 @@ public class TerminalOutput : Gtk.TextBuffer {
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_UP:
-			case TerminalStream.StreamElement.ControlSequenceType.REVERSE_INDEX:
-				if (get_screen_position(cursor_position).line == 1) move_screen(screen_offset-1);
-				// Moves the active position upward without altering the column position.
-				// The number of lines moved is determined by the parameter (default: 1)
-				move_cursor(cursor_position.line - stream_element.get_numeric_parameter(0, 1), cursor_position.column);
+				// Moves cursor up Pn lines in same column. Cursor stops at top margin.
+				if (get_screen_position(cursor_position).line != 1)
+					move_cursor(cursor_position.line - stream_element.get_numeric_parameter(0, 1), cursor_position.column);
+
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_DOWN:
-			case TerminalStream.StreamElement.ControlSequenceType.INDEX:
-			case TerminalStream.StreamElement.ControlSequenceType.LINE_POSITION_RELATIVE:
-				if (get_screen_position(cursor_position).line == terminal.lines) move_screen(screen_offset+1);
-				// The CUD sequence moves the active position downward without altering the column position.
-				// The number of lines moved is determined by the parameter (default: 1)
-				move_cursor(cursor_position.line + stream_element.get_numeric_parameter(0, 1), cursor_position.column);
+				// Moves cursor down Pn lines in same column. Cursor stops at bottom margin.
+				if (get_screen_position(cursor_position).line != terminal.lines)
+					move_cursor(cursor_position.line + stream_element.get_numeric_parameter(0, 1), cursor_position.column);
+
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_FORWARD:
@@ -286,6 +283,22 @@ public class TerminalOutput : Gtk.TextBuffer {
 				int column = stream_element.get_numeric_parameter(1, 1);
 				move_cursor_screen(line, column);
 				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.INDEX:
+			case TerminalStream.StreamElement.ControlSequenceType.LINE_POSITION_RELATIVE:
+				if (get_screen_position(cursor_position).line == terminal.lines) move_screen(screen_offset+1);
+				// The CUD sequence moves the active position downward without altering the column position.
+				// The number of lines moved is determined by the parameter (default: 1)
+				move_cursor(cursor_position.line + stream_element.get_numeric_parameter(0, 1), cursor_position.column);
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.REVERSE_INDEX:
+				if (get_screen_position(cursor_position).line == 1) move_screen(screen_offset-1);
+				// Moves the active position upward without altering the column position.
+				// The number of lines moved is determined by the parameter (default: 1)
+				move_cursor(cursor_position.line - stream_element.get_numeric_parameter(0, 1), cursor_position.column);
+				break;
+
 
 			case TerminalStream.StreamElement.ControlSequenceType.NEXT_LINE:
 				move_screen(screen_offset+1);
