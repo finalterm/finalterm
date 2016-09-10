@@ -53,7 +53,6 @@ public class TerminalOutput : Gtk.TextBuffer {
 	// The cursor's position within the full terminal output,
 	// not its position on the screen
 	public new CursorPosition cursor_position = CursorPosition();
-	public CursorPosition? saved_cursor = null;
 
 	public struct CursorPosition {
 		public int line;
@@ -67,6 +66,14 @@ public class TerminalOutput : Gtk.TextBuffer {
 
 			return column - position.column;
 		}
+	}
+
+	private CursorSave? cursor_save = null;
+
+	private struct CursorSave {
+		public CursorPosition position;
+		public CharacterAttributes attributes;
+		public Encoder encoder;
 	}
 
 	// State variables for prompt capturing;
@@ -307,16 +314,21 @@ public class TerminalOutput : Gtk.TextBuffer {
 
 			case TerminalStream.StreamElement.ControlSequenceType.SAVE_CURSOR:
 			case TerminalStream.StreamElement.ControlSequenceType.SAVE_CURSOR_ANSI_SYS:
-				saved_cursor = cursor_position;
+				cursor_save = CursorSave () {
+					position = cursor_position,
+					attributes = new CharacterAttributes.copy(current_attributes),
+					encoder = new Encoder.copy(encoder)
+				};
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.RESTORE_CURSOR:
 			case TerminalStream.StreamElement.ControlSequenceType.RESTORE_CURSOR_ANSI_SYS:
-				if (saved_cursor == null)
+				if (cursor_save == null)
 					break;
 
-				move_cursor(saved_cursor.line, saved_cursor.column);
-				saved_cursor = null;
+				move_cursor(cursor_save.position.line, cursor_save.position.column);
+				current_attributes = cursor_save.attributes;
+				encoder = cursor_save.encoder;
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.APPLICATION_KEYPAD:

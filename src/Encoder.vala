@@ -50,6 +50,16 @@ public class Encoder : Object {
 	public int gl = 0;
 	public int single_shift = -1;
 
+	private void copy_method(Encoder encoder) {
+		gl = encoder.gl;
+		single_shift = encoder.single_shift;
+		charsets = encoder.charsets;
+	}
+
+	public Encoder.copy(Encoder encoder) {
+		copy_method(encoder);
+	}
+
 	/**
 	 *  TODO:
 	 *   Portuguese is unimplemented.
