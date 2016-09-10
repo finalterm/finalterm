@@ -133,30 +133,25 @@ public class TerminalOutput : Gtk.TextBuffer {
 			// which is more detailed than xterm's specification at
 			// http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
 			switch (stream_element.control_sequence_type) {
-			case TerminalStream.StreamElement.ControlSequenceType.CARRIAGE_RETURN:
-				// Wrap long command lines
-				if (command_mode && cursor_position.column-1 == terminal.columns)
-					// Move cursor to the left margin on the next line
-					move_cursor(cursor_position.line+1, 0);
-				else
-					// Move cursor to the left margin on the current line
-					move_cursor(cursor_position.line, 0);
+
+			/* Control sequences for VT102 */
+
+			case TerminalStream.StreamElement.ControlSequenceType.BELL:
+				// TODO: Beep on the terminal window rather than the default display
+				Gdk.beep();
 				break;
 
-			case TerminalStream.StreamElement.ControlSequenceType.FORM_FEED:
-			case TerminalStream.StreamElement.ControlSequenceType.LINE_FEED:
-			case TerminalStream.StreamElement.ControlSequenceType.VERTICAL_TAB:
-				// This code causes a line feed or a new line operation
-				// TODO: Does LF always imply CR?
-				move_cursor(cursor_position.line + 1, 0);
-				line_added();
+			case TerminalStream.StreamElement.ControlSequenceType.BACKSPACE:
+				// Move the cursor to the left one character position,
+				// unless it is at the left margin, in which case no action occurs
+				move_cursor(cursor_position.line, cursor_position.column - 1);
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.HORIZONTAL_TAB:
 				// VT100 specifies:
-				// Move the cursor to the next tab stop, or to the right margin
-				// if no further tab stops are present on the line, but xterm
-				// inserts a printable tab instead of moving to the right margin?
+				// Moves cursor to next tab stop, or to right margin if there are
+				// no more tab stops, but xterm inserts a printable tab instead
+				// of moving to the right margin?
 				var column = tab_stops.higher(cursor_position.column);
 				if (column == 0) {
 					Gtk.TextIter iter;
@@ -170,60 +165,33 @@ public class TerminalOutput : Gtk.TextBuffer {
 				line_updated(cursor_position.line);
 				break;
 
-			case TerminalStream.StreamElement.ControlSequenceType.DEC_DOUBLE_WIDTH_LINE:
-				Gtk.TextIter start, end;
-				get_iter_at_line(out start, cursor_position.line);
-				get_iter_at_line(out end, cursor_position.line);
-				end.forward_to_line_end();
-
-				// Add tag to entire line. Text drawn in TextView.draw_layer
-				apply_tag(tag_table.lookup("double-wide") ?? create_tag("double-wide", "invisible", true), start, end);
+			case TerminalStream.StreamElement.ControlSequenceType.LINE_FEED:
+			case TerminalStream.StreamElement.ControlSequenceType.VERTICAL_TAB:
+			case TerminalStream.StreamElement.ControlSequenceType.FORM_FEED:
+				// Causes a line feed or a new line operation
+				// TODO: Does LF always imply CR?
+				move_cursor(cursor_position.line + 1, 0);
+				line_added();
 				break;
 
-			case TerminalStream.StreamElement.ControlSequenceType.DEC_DOUBLE_HEIGHT_LINE_TOP_HALF:
-				Gtk.TextIter start, end;
-				get_iter_at_line(out start, cursor_position.line);
-				get_iter_at_line(out end, cursor_position.line);
-				end.forward_to_line_end();
+			case TerminalStream.StreamElement.ControlSequenceType.CARRIAGE_RETURN:
+				// Moves cursor to left margin on current line.
 
-				// Add tag to entire line. Text drawn in TextView.draw_layer
-				apply_tag(tag_table.lookup("double-top") ?? create_tag("double-top", "invisible", true), start, end);
+				// Wrap long command lines
+				if (command_mode && cursor_position.column-1 == terminal.columns)
+					move_cursor(cursor_position.line+1, 0); // Move to next line
+				else
+					move_cursor(cursor_position.line, 0);
 				break;
 
-			case TerminalStream.StreamElement.ControlSequenceType.DEC_DOUBLE_HEIGHT_LINE_BOTTOM_HALF:
-				Gtk.TextIter start, end;
-				get_iter_at_line(out start, cursor_position.line);
-				get_iter_at_line(out end, cursor_position.line);
-				end.forward_to_line_end();
-
-				// Add tag to entire line. Text drawn in TextView.draw_layer
-				apply_tag(tag_table.lookup("double-bottom") ?? create_tag("double-bottom", "invisible", true), start, end);
+			case TerminalStream.StreamElement.ControlSequenceType.SHIFT_OUT:
+				// Selects G1 character set designated by a select character set sequence.
+				encoder.gl = 1;
 				break;
 
-			case TerminalStream.StreamElement.ControlSequenceType.BELL:
-				// TODO: Beep on the terminal window rather than the default display
-				Gdk.beep();
-				break;
-			case TerminalStream.StreamElement.ControlSequenceType.SAVE_CURSOR:
-			case TerminalStream.StreamElement.ControlSequenceType.SAVE_CURSOR_ANSI_SYS:
-				saved_cursor = cursor_position;
-				break;
-
-			case TerminalStream.StreamElement.ControlSequenceType.RESTORE_CURSOR:
-			case TerminalStream.StreamElement.ControlSequenceType.RESTORE_CURSOR_ANSI_SYS:
-				if (saved_cursor == null)
-					break;
-
-				move_cursor(saved_cursor.line, saved_cursor.column);
-				saved_cursor = null;
-				break;
-
-			case TerminalStream.StreamElement.ControlSequenceType.APPLICATION_KEYPAD:
-				terminal_modes |= TerminalMode.KEYPAD;
-				break;
-
-			case TerminalStream.StreamElement.ControlSequenceType.NORMAL_KEYPAD:
-				terminal_modes &= ~TerminalMode.KEYPAD;
+			case TerminalStream.StreamElement.ControlSequenceType.SHIFT_IN:
+				// Selects G0 character set designated by a select character set sequence.
+				encoder.gl = 0;
 				break;
 
 			// TODO: Implement unified system for setting and resetting flags
@@ -283,20 +251,6 @@ public class TerminalOutput : Gtk.TextBuffer {
 				}
 				break;
 
-			case TerminalStream.StreamElement.ControlSequenceType.BACKSPACE:
-				// Move the cursor to the left one character position,
-				// unless it is at the left margin, in which case no action occurs
-				move_cursor(cursor_position.line, cursor_position.column - 1);
-				break;
-
-			case TerminalStream.StreamElement.ControlSequenceType.INSERT_CHARACTERS:
-				var restore = cursor_position;
-				print_text(string.nfill(stream_element.get_numeric_parameter(0, 1), ' '), false);
-
-				// Shouldn't move cursor
-				move_cursor(restore.line, restore.column);
-				break;
-
 			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_UP:
 			case TerminalStream.StreamElement.ControlSequenceType.REVERSE_INDEX:
 				if (get_screen_position(cursor_position).line == 1) move_screen(screen_offset-1);
@@ -319,9 +273,66 @@ public class TerminalOutput : Gtk.TextBuffer {
 				move_cursor(cursor_position.line, cursor_position.column + stream_element.get_numeric_parameter(0, 1));
 				break;
 
+			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_BACKWARD:
+			case TerminalStream.StreamElement.ControlSequenceType.BACK_INDEX:
+				// The CUB sequence moves the active position to the left.
+				// The distance moved is determined by the parameter (default: 1)
+				move_cursor(cursor_position.line, cursor_position.column - stream_element.get_numeric_parameter(0, 1));
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.HORIZONTAL_AND_VERTICAL_POSITION:
+			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_POSITION:
+				int line   = stream_element.get_numeric_parameter(0, 1);
+				int column = stream_element.get_numeric_parameter(1, 1);
+				move_cursor_screen(line, column);
+				break;
+
 			case TerminalStream.StreamElement.ControlSequenceType.NEXT_LINE:
 				move_screen(screen_offset+1);
 				move_cursor(cursor_position.line + stream_element.get_numeric_parameter(0,1), 0);
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.SAVE_CURSOR:
+			case TerminalStream.StreamElement.ControlSequenceType.SAVE_CURSOR_ANSI_SYS:
+				saved_cursor = cursor_position;
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.RESTORE_CURSOR:
+			case TerminalStream.StreamElement.ControlSequenceType.RESTORE_CURSOR_ANSI_SYS:
+				if (saved_cursor == null)
+					break;
+
+				move_cursor(saved_cursor.line, saved_cursor.column);
+				saved_cursor = null;
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.APPLICATION_KEYPAD:
+				terminal_modes |= TerminalMode.KEYPAD;
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.NORMAL_KEYPAD:
+				terminal_modes &= ~TerminalMode.KEYPAD;
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.DESIGNATE_G0_CHARACTER_SET_VT100:
+				encoder.setCharset(0, stream_element.get_text_parameter(0, "B"));
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.DESIGNATE_G1_CHARACTER_SET_VT100:
+			case TerminalStream.StreamElement.ControlSequenceType.DESIGNATE_G1_CHARACTER_SET_VT300:
+				encoder.setCharset(1, stream_element.get_text_parameter(0, "B"));
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.SINGLE_SHIFT_G2_CHARACTER_SET:
+				encoder.single_shift = 2;
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.SINGLE_SHIFT_G3_CHARACTER_SET:
+				encoder.single_shift = 3;
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.CHARACTER_ATTRIBUTES:
+				current_attributes = new CharacterAttributes.from_stream_element(stream_element, current_attributes);
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.TAB_SET:
@@ -342,66 +353,75 @@ public class TerminalOutput : Gtk.TextBuffer {
 				}
 				break;
 
-			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_BACKWARD_TABULATION:
-				var count = stream_element.get_numeric_parameter(0, 1);
-				var column = tab_stops.lower(cursor_position.column);
-				for (var i = 1; i < count; i++)
-					column = tab_stops.lower(column);
-
-				move_cursor (cursor_position.line, column);
-
-				break;
-
-			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_FORWARD_TABULATION:
-				var count = stream_element.get_numeric_parameter(0, 1);
-				var column = tab_stops.higher(cursor_position.column);
-				for (var i = 1; i < count && column != 0; i++)
-					column = tab_stops.higher(column);
-
-				if (column == 0) {
-					Gtk.TextIter iter;
-					get_iter_at_line(out iter, cursor_position.line);
-					column = iter.get_chars_in_line();
-				}
-
-				move_cursor (cursor_position.line, column);
-
-				break;
-
-			case TerminalStream.StreamElement.ControlSequenceType.CHARACTER_POSITION_RELATIVE:
-				// The CUF sequence moves the active position to the right.
-				// The distance moved is determined by the parameter (default: 1)
-				move_cursor(cursor_position.line, cursor_position.column + stream_element.get_numeric_parameter(0, 1));
-				break;
-
-			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_BACKWARD:
-			case TerminalStream.StreamElement.ControlSequenceType.BACK_INDEX:
-				// The CUB sequence moves the active position to the left.
-				// The distance moved is determined by the parameter (default: 1)
-				move_cursor(cursor_position.line, cursor_position.column - stream_element.get_numeric_parameter(0, 1));
-				break;
-
-			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_NEXT_LINE:
-				// The CNL sequence moves the active position to down n lines.
-				// n is determined by the parameter (default: 1)
-				move_cursor(cursor_position.line + stream_element.get_numeric_parameter(0, 1), 0);
-				break;
-
-			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_PRECEDING_LINE:
-				// The CNL sequence moves the active position to up n lines.
-				// n is determined by the parameter (default: 1)
-				move_cursor(cursor_position.line - stream_element.get_numeric_parameter(0, 1), 0);
-				break;
-
-			case TerminalStream.StreamElement.ControlSequenceType.REPEAT_PRECEDING_GRAPHIC_CHARACTER:
-				var n = stream_element.get_numeric_parameter(0, 1);
+			case TerminalStream.StreamElement.ControlSequenceType.DEC_DOUBLE_HEIGHT_LINE_TOP_HALF:
 				Gtk.TextIter start, end;
-				get_iter_at_line_offset(out start, cursor_position.line, cursor_position.column - 1);
-				get_iter_at_line_offset(out end, cursor_position.line, cursor_position.column);
-				char c = get_text(start, end, true)[0];
-				insert(ref end, string.nfill(n, c), -1);
-				move_cursor(cursor_position.line, cursor_position.column + n);
+				get_iter_at_line(out start, cursor_position.line);
+				get_iter_at_line(out end, cursor_position.line);
+				end.forward_to_line_end();
 
+				// Add tag to entire line. Text drawn in TextView.draw_layer
+				apply_tag(tag_table.lookup("double-top") ?? create_tag("double-top", "invisible", true), start, end);
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.DEC_DOUBLE_HEIGHT_LINE_BOTTOM_HALF:
+				Gtk.TextIter start, end;
+				get_iter_at_line(out start, cursor_position.line);
+				get_iter_at_line(out end, cursor_position.line);
+				end.forward_to_line_end();
+
+				// Add tag to entire line. Text drawn in TextView.draw_layer
+				apply_tag(tag_table.lookup("double-bottom") ?? create_tag("double-bottom", "invisible", true), start, end);
+				break;
+
+
+			case TerminalStream.StreamElement.ControlSequenceType.DEC_DOUBLE_WIDTH_LINE:
+				Gtk.TextIter start, end;
+				get_iter_at_line(out start, cursor_position.line);
+				get_iter_at_line(out end, cursor_position.line);
+				end.forward_to_line_end();
+
+				// Add tag to entire line. Text drawn in TextView.draw_layer
+				apply_tag(tag_table.lookup("double-wide") ?? create_tag("double-wide", "invisible", true), start, end);
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.ERASE_IN_LINE_EL:
+				switch (stream_element.get_numeric_parameter(0, 0)) {
+				case 0:
+					// Erase from the active position to the end of the line, inclusive (default)
+					erase_line_range(cursor_position.line, cursor_position.column);
+					break;
+				case 1:
+					// Erase from the start of the screen to the active position, inclusive
+					// TODO: Is this "inclusive"?
+					// TODO: Should this erase from the start of the LINE instead (as implemented here)?
+					erase_line_range(cursor_position.line, 0, cursor_position.column);
+					break;
+				case 2:
+					// Erase all of the line, inclusive
+					erase_line_range(cursor_position.line);
+					break;
+				default:
+					print_interpretation_status(stream_element, InterpretationStatus.INVALID);
+					break;
+				}
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.ERASE_IN_LINE_DECSEL:
+				// Same as above but will skip text with the non-erasable tag.
+				switch (stream_element.get_numeric_parameter(0, 0)) {
+				case 0:
+					erase_line_range(cursor_position.line, cursor_position.column, -1, true);
+					break;
+				case 1:
+					erase_line_range(cursor_position.line, 0, cursor_position.column, true);
+					break;
+				case 2:
+					erase_line_range(cursor_position.line, 0, -1, true);
+					break;
+				default:
+					print_interpretation_status(stream_element, InterpretationStatus.INVALID);
+					break;
+				}
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.ERASE_IN_DISPLAY_ED:
@@ -481,44 +501,15 @@ public class TerminalOutput : Gtk.TextBuffer {
 				}
 				break;
 
-			case TerminalStream.StreamElement.ControlSequenceType.ERASE_IN_LINE_EL:
-				switch (stream_element.get_numeric_parameter(0, 0)) {
-				case 0:
-					// Erase from the active position to the end of the line, inclusive (default)
-					erase_line_range(cursor_position.line, cursor_position.column);
-					break;
-				case 1:
-					// Erase from the start of the screen to the active position, inclusive
-					// TODO: Is this "inclusive"?
-					// TODO: Should this erase from the start of the LINE instead (as implemented here)?
-					erase_line_range(cursor_position.line, 0, cursor_position.column);
-					break;
-				case 2:
-					// Erase all of the line, inclusive
-					erase_line_range(cursor_position.line);
-					break;
-				default:
-					print_interpretation_status(stream_element, InterpretationStatus.INVALID);
-					break;
-				}
-				break;
+			case TerminalStream.StreamElement.ControlSequenceType.DELETE_CHARACTERS:
+				// This control function deletes one or more characters from the cursor position to the right
+				Gtk.TextIter start, end;
+				get_iter_at_line_offset(out start, cursor_position.line, cursor_position.column);
+				get_iter_at_line_offset(out end, cursor_position.line,
+					cursor_position.column + stream_element.get_numeric_parameter(0, 1));
+				this.delete(ref start, ref end);
 
-			case TerminalStream.StreamElement.ControlSequenceType.ERASE_IN_LINE_DECSEL:
-				// Same as above but will skip text with the non-erasable tag.
-				switch (stream_element.get_numeric_parameter(0, 0)) {
-				case 0:
-					erase_line_range(cursor_position.line, cursor_position.column, -1, true);
-					break;
-				case 1:
-					erase_line_range(cursor_position.line, 0, cursor_position.column, true);
-					break;
-				case 2:
-					erase_line_range(cursor_position.line, 0, -1, true);
-					break;
-				default:
-					print_interpretation_status(stream_element, InterpretationStatus.INVALID);
-					break;
-				}
+				line_updated(cursor_position.line);
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.INSERT_LINES:
@@ -542,23 +533,76 @@ public class TerminalOutput : Gtk.TextBuffer {
 				move_cursor(cursor_position.line, 0);
 				break;
 
+			/* Control sequences for VT220 and above */
+
+			case TerminalStream.StreamElement.ControlSequenceType.INSERT_CHARACTERS:
+				var restore = cursor_position;
+				print_text(string.nfill(stream_element.get_numeric_parameter(0, 1), ' '), false);
+
+				// Shouldn't move cursor
+				move_cursor(restore.line, restore.column);
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_BACKWARD_TABULATION:
+				var count = stream_element.get_numeric_parameter(0, 1);
+				var column = tab_stops.lower(cursor_position.column);
+				for (var i = 1; i < count; i++)
+					column = tab_stops.lower(column);
+
+				move_cursor (cursor_position.line, column);
+
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_FORWARD_TABULATION:
+				var count = stream_element.get_numeric_parameter(0, 1);
+				var column = tab_stops.higher(cursor_position.column);
+				for (var i = 1; i < count && column != 0; i++)
+					column = tab_stops.higher(column);
+
+				if (column == 0) {
+					Gtk.TextIter iter;
+					get_iter_at_line(out iter, cursor_position.line);
+					column = iter.get_chars_in_line();
+				}
+
+				move_cursor (cursor_position.line, column);
+
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.CHARACTER_POSITION_RELATIVE:
+				// The CUF sequence moves the active position to the right.
+				// The distance moved is determined by the parameter (default: 1)
+				move_cursor(cursor_position.line, cursor_position.column + stream_element.get_numeric_parameter(0, 1));
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_NEXT_LINE:
+				// The CNL sequence moves the active position to down n lines.
+				// n is determined by the parameter (default: 1)
+				move_cursor(cursor_position.line + stream_element.get_numeric_parameter(0, 1), 0);
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_PRECEDING_LINE:
+				// The CNL sequence moves the active position to up n lines.
+				// n is determined by the parameter (default: 1)
+				move_cursor(cursor_position.line - stream_element.get_numeric_parameter(0, 1), 0);
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.REPEAT_PRECEDING_GRAPHIC_CHARACTER:
+				var n = stream_element.get_numeric_parameter(0, 1);
+				Gtk.TextIter start, end;
+				get_iter_at_line_offset(out start, cursor_position.line, cursor_position.column - 1);
+				get_iter_at_line_offset(out end, cursor_position.line, cursor_position.column);
+				char c = get_text(start, end, true)[0];
+				insert(ref end, string.nfill(n, c), -1);
+				move_cursor(cursor_position.line, cursor_position.column + n);
+
+				break;
+
 			case TerminalStream.StreamElement.ControlSequenceType.ERASE_CHARACTERS:
 				// "Erase" means "clear" in this case (i.e. fill with whitespace)
 				print_text(string.nfill(stream_element.get_numeric_parameter(0, 1), ' '));
 
 				line_updated(cursor_position.line);
-				break;
-
-			case TerminalStream.StreamElement.ControlSequenceType.DELETE_CHARACTERS:
-				// This control function deletes one or more characters from the cursor position to the right
-				Gtk.TextIter start, end;
-				get_iter_at_line_offset(out start, cursor_position.line, cursor_position.column);
-				get_iter_at_line_offset(out end, cursor_position.line,
-					cursor_position.column + stream_element.get_numeric_parameter(0, 1));
-				this.delete(ref start, ref end);
-
-				line_updated(cursor_position.line);
-
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.SCROLL_UP_LINES:
@@ -573,13 +617,6 @@ public class TerminalOutput : Gtk.TextBuffer {
 				move_cursor(cursor_position.line+n, cursor_position.column);
 				break;
 
-			case TerminalStream.StreamElement.ControlSequenceType.HORIZONTAL_AND_VERTICAL_POSITION:
-			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_POSITION:
-				int line   = stream_element.get_numeric_parameter(0, 1);
-				int column = stream_element.get_numeric_parameter(1, 1);
-				move_cursor_screen(line, column);
-				break;
-
 			case TerminalStream.StreamElement.ControlSequenceType.LINE_POSITION_ABSOLUTE:
 				move_cursor_screen(stream_element.get_numeric_parameter(0, 1),
 						get_screen_position(cursor_position).column);
@@ -589,10 +626,6 @@ public class TerminalOutput : Gtk.TextBuffer {
 			case TerminalStream.StreamElement.ControlSequenceType.CHARACTER_POSITION_ABSOLUTE:
 				move_cursor_screen(get_screen_position(cursor_position).line,
 						stream_element.get_numeric_parameter(0, 1));
-				break;
-
-			case TerminalStream.StreamElement.ControlSequenceType.CHARACTER_ATTRIBUTES:
-				current_attributes = new CharacterAttributes.from_stream_element(stream_element, current_attributes);
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.SELECT_CHARACTER_PROTECTION_ATTRIBUTE:
@@ -635,37 +668,12 @@ public class TerminalOutput : Gtk.TextBuffer {
 				erase_rect_screen(tl, br, true);
 				break;
 
-			case TerminalStream.StreamElement.ControlSequenceType.SHIFT_IN:
-				encoder.gl = 0;
-				break;
-
-			case TerminalStream.StreamElement.ControlSequenceType.SHIFT_OUT:
-				encoder.gl = 1;
-				break;
-
 			case TerminalStream.StreamElement.ControlSequenceType.INVOKE_G2_CHARACTER_SET_AS_GL:
 				encoder.gl = 2;
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.INVOKE_G3_CHARACTER_SET_AS_GL:
 				encoder.gl = 3;
-				break;
-
-			case TerminalStream.StreamElement.ControlSequenceType.SINGLE_SHIFT_G2_CHARACTER_SET:
-				encoder.single_shift = 2;
-				break;
-
-			case TerminalStream.StreamElement.ControlSequenceType.SINGLE_SHIFT_G3_CHARACTER_SET:
-				encoder.single_shift = 3;
-				break;
-
-			case TerminalStream.StreamElement.ControlSequenceType.DESIGNATE_G0_CHARACTER_SET_VT100:
-				encoder.setCharset(0, stream_element.get_text_parameter(0, "B"));
-				break;
-
-			case TerminalStream.StreamElement.ControlSequenceType.DESIGNATE_G1_CHARACTER_SET_VT100:
-			case TerminalStream.StreamElement.ControlSequenceType.DESIGNATE_G1_CHARACTER_SET_VT300:
-				encoder.setCharset(1, stream_element.get_text_parameter(0, "B"));
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.DESIGNATE_G2_CHARACTER_SET_VT220:
