@@ -581,6 +581,44 @@ public class TerminalOutput : Gtk.TextBuffer {
 				move_cursor(cursor_position.line, 0);
 				break;
 
+			case TerminalStream.StreamElement.ControlSequenceType.DEVICE_STATUS_REPORT:
+				switch (stream_element.get_numeric_parameter(0, 0)) {
+					// Request a status report
+					case 5:
+						// Ready, no malfunctions detected
+						terminal.send_text("\033[0n");
+						break;
+
+					// Request a cursor position report
+					case 6:
+						terminal.send_text("\033[%d;%dR".printf(cursor_position.line, cursor_position.column));
+						break;
+					default:
+						print_interpretation_status(stream_element, InterpretationStatus.UNSUPPORTED);
+						break;
+				}
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.DEVICE_STATUS_REPORT_DEC:
+				switch (stream_element.get_numeric_parameter(0, 0)) {
+					// Request a printer status report
+					case 15:
+						// Printer not connected
+						terminal.send_text("\033[?13n");
+						break;
+					default:
+						print_interpretation_status(stream_element, InterpretationStatus.UNSUPPORTED);
+						break;
+				}
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.SEND_DEVICE_ATTRIBUTES_PRIMARY:
+			case TerminalStream.StreamElement.ControlSequenceType.IDENTIFY_TERMINAL:
+				// Identify as VT102 (for now)
+				terminal.send_text("\033[?6c");
+				break;
+
+
 			/* Control sequences for VT220 and above */
 
 			case TerminalStream.StreamElement.ControlSequenceType.INSERT_CHARACTERS:
