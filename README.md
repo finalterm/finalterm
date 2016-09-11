@@ -1,18 +1,10 @@
 # Final Term is back!
 
-I have made the decision to pickup development on Final Term. Step one was to remove the dependencies on Clutter and Mx and move to a full Gtk setup. This has been done, but is sure to have introduced many new bugs.
+I have made the decision to pickup development on Final Term. Step one was to remove the dependencies on Clutter and Mx and move to a full Gtk setup. That has been done, and while it has given finalterm a large performance boost, is sure to have introduced new bugs.
 
-## Changes
+Step two is to fully implment vt100 elmulation. This is the main focus of current development.
 
-* Remove Clutter and Mx.
-* Proformace increase.
-* Selection and copy.
-* Click to move cursor.
-* Status bar.
-  * Prompt escapes.
-  * Recent directroies menu.
-* [Bug fixes](http://github.com/RedHatter/finalterm-reborn/wiki/Bugs/).
-
+You can normally find me at #finalterm on chat.freenode.net.
 
 # About Final Term
 
