@@ -38,10 +38,13 @@ public class TerminalOutput : Gtk.TextBuffer {
 
 	[Flags]
 	public enum TerminalMode {
-		KEYPAD,
-		NUMLOCK, // Currently unsupported
-		CURSOR,
-		CRLF
+		CURSOR,  // Alternative sequences for array keys
+		KBDLOCK, // Disable keyboard
+		INSERT,  // Shift characters to the right when inserting
+		ECHO,    // Print characters written to tty
+		CRLF,    // LF infers CR
+		KEYPAD,  // Keypad generates control functions
+		NUMLOCK  // Currently unsupported
 	}
 
 	private CharacterAttributes current_attributes;
@@ -128,7 +131,7 @@ public class TerminalOutput : Gtk.TextBuffer {
 		case TerminalStream.StreamElement.StreamElementType.TEXT:
 			//message(_("Text sequence received: '%s'"), stream_element.text);
 
-			print_text(stream_element.text);
+			print_text(stream_element.text, (terminal_modes & TerminalMode.INSERT) == 0);
 			line_updated(cursor_position.line);
 			break;
 
@@ -176,8 +179,10 @@ public class TerminalOutput : Gtk.TextBuffer {
 			case TerminalStream.StreamElement.ControlSequenceType.VERTICAL_TAB:
 			case TerminalStream.StreamElement.ControlSequenceType.FORM_FEED:
 				// Causes a line feed or a new line operation
-				// TODO: Does LF always imply CR?
-				move_cursor(cursor_position.line + 1, 0);
+				if ((terminal_modes & TerminalMode.CRLF) == TerminalMode.CRLF)
+					move_cursor(cursor_position.line + 1, 0);
+				else
+					move_cursor(cursor_position.line + 1, cursor_position.column);
 				line_added();
 				break;
 
@@ -205,8 +210,16 @@ public class TerminalOutput : Gtk.TextBuffer {
 			case TerminalStream.StreamElement.ControlSequenceType.SET_MODE:
 				for (int i = 0; i < stream_element.control_sequence_parameters.size; i++) {
 					switch (stream_element.get_numeric_parameter(i, -1)) {
+					case 2:
+						terminal_modes |= TerminalMode.KBDLOCK;
+						break;
+					case 4:
+						terminal_modes |= TerminalMode.INSERT;
+						break;
+					case 12:
+						terminal_modes &= ~TerminalMode.ECHO;
+						break;
 					case 20:
-						// Automatic Newline
 						terminal_modes |= TerminalMode.CRLF;
 						break;
 					default:
@@ -219,8 +232,16 @@ public class TerminalOutput : Gtk.TextBuffer {
 			case TerminalStream.StreamElement.ControlSequenceType.RESET_MODE:
 				for (int i = 0; i < stream_element.control_sequence_parameters.size; i++) {
 					switch (stream_element.get_numeric_parameter(i, -1)) {
+					case 2:
+						terminal_modes &= ~TerminalMode.KBDLOCK;
+						break;
+					case 4:
+						terminal_modes &= ~TerminalMode.INSERT;
+						break;
+					case 12:
+						terminal_modes |= TerminalMode.ECHO;
+						break;
 					case 20:
-						// Normal Linefeed
 						terminal_modes &= ~TerminalMode.CRLF;
 						break;
 					default:
@@ -234,8 +255,9 @@ public class TerminalOutput : Gtk.TextBuffer {
 				for (int i = 0; i < stream_element.control_sequence_parameters.size; i++) {
 					switch (stream_element.get_numeric_parameter(i, -1)) {
 					case 1:
-						// Application Cursor Keys
-						terminal_modes |= TerminalMode.CURSOR;
+						if ((terminal_modes & TerminalMode.KEYPAD) == TerminalMode.KEYPAD)
+							terminal_modes |= TerminalMode.CURSOR;
+
 						break;
 					default:
 						print_interpretation_status(stream_element, InterpretationStatus.UNSUPPORTED);
@@ -337,6 +359,7 @@ public class TerminalOutput : Gtk.TextBuffer {
 
 			case TerminalStream.StreamElement.ControlSequenceType.NORMAL_KEYPAD:
 				terminal_modes &= ~TerminalMode.KEYPAD;
+				terminal_modes &= ~TerminalMode.CURSOR;
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.DESIGNATE_G0_CHARACTER_SET_VT100:

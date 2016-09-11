@@ -198,6 +198,12 @@ public class Terminal : Object {
 		try {
 			command_channel.write_chars((char[])text.data, out bytes_written);
 			command_channel.flush();
+			if ((terminal_output.terminal_modes & TerminalOutput.TerminalMode.ECHO) == TerminalOutput.TerminalMode.ECHO) {
+				int index = 0;
+				unichar character;
+				while(text.get_next_char(ref index, out character))
+					terminal_stream.parse_character(character);
+			}
 		} catch (Error e) { warning(_("Sending text failed: %s"), e.message); }
 	}
 

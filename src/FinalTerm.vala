@@ -309,6 +309,10 @@ public class FinalTerm : Gtk.Application {
 			}
 		}
 
+		// Keyboard is disabled
+		if ((active_terminal_widget.get_terminal_modes() & TerminalOutput.TerminalMode.KBDLOCK) == TerminalOutput.TerminalMode.KBDLOCK)
+			return true;
+
 		// Handle user-configured keys only outside of preedit
 		if (!preedit_active) {
 			var key_commands = KeyBindings.get_key_commands(event.keyval, event.state,
@@ -509,4 +513,3 @@ public class FinalTerm : Gtk.Application {
 	}
 
 }
-
