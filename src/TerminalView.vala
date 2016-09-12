@@ -77,12 +77,6 @@ public class TerminalView : Fixed {
 	public bool window_has_focus() {
 		return (get_toplevel() as Gtk.Window).has_toplevel_focus;
 	}
-
-	protected override void get_preferred_height(out int minimum_height, out int natural_height) {
-		status_bar.get_preferred_height(null, out natural_height);
-		natural_height += (terminal.lines * Settings.get_default().character_height);
-		minimum_height = 2;
-	}
 }
 
 public class TerminalOutputView : ScrolledWindow {
@@ -204,6 +198,11 @@ public class TerminalOutputView : ScrolledWindow {
 			else
 				cursor.hide();
 		});
+	}
+
+	protected override void get_preferred_height(out int minimum_height, out int natural_height) {
+		natural_height = Settings.get_default().terminal_lines * Settings.get_default().character_height;
+		minimum_height = 2;
 	}
 
 	// Retrieve and show text menus

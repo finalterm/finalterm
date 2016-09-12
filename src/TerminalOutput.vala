@@ -282,28 +282,31 @@ public class TerminalOutput : Gtk.TextBuffer {
 
 			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_UP:
 				// Moves cursor up Pn lines in same column. Cursor stops at top margin.
-				if (get_screen_position(cursor_position).line != 1)
-					move_cursor(cursor_position.line - stream_element.get_numeric_parameter(0, 1), cursor_position.column);
-
+				int line = int.max(stream_element.get_numeric_parameter(0, 1), 1);
+				line = int.max(get_screen_position(cursor_position).line - line, 1);
+				move_cursor_screen(line, cursor_position.column + 1);
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_DOWN:
 				// Moves cursor down Pn lines in same column. Cursor stops at bottom margin.
-				if (get_screen_position(cursor_position).line != terminal.lines)
-					move_cursor(cursor_position.line + stream_element.get_numeric_parameter(0, 1), cursor_position.column);
-
+				int line = int.max(stream_element.get_numeric_parameter(0, 1), 1);
+				line = int.min(get_screen_position(cursor_position).line + line, terminal.lines);
+				move_cursor_screen(line, cursor_position.column + 1);
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_FORWARD:
-			case TerminalStream.StreamElement.ControlSequenceType.FORWARD_INDEX:
-				move_cursor(cursor_position.line, cursor_position.column + stream_element.get_numeric_parameter(0, 1));
+				// Moves cursor one column to right. Cursor stops at right margin.
+				int column = int.max(stream_element.get_numeric_parameter(0, 1), 1);
+				column = int.min(cursor_position.column + column, terminal.columns);
+				move_cursor(cursor_position.line, column);
+
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.CURSOR_BACKWARD:
-			case TerminalStream.StreamElement.ControlSequenceType.BACK_INDEX:
-				// The CUB sequence moves the active position to the left.
-				// The distance moved is determined by the parameter (default: 1)
-				move_cursor(cursor_position.line, cursor_position.column - stream_element.get_numeric_parameter(0, 1));
+				// Moves cursor one column to left. Cursor stops at left margin.
+				int column = int.max(stream_element.get_numeric_parameter(0, 1), 1);
+				column = int.max(cursor_position.column - column, 0);
+				move_cursor(cursor_position.line, column);
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.HORIZONTAL_AND_VERTICAL_POSITION:
@@ -314,24 +317,20 @@ public class TerminalOutput : Gtk.TextBuffer {
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.INDEX:
-			case TerminalStream.StreamElement.ControlSequenceType.LINE_POSITION_RELATIVE:
+				// Moves cursor down one line in same column. If cursor is at bottom margin, screen performs a scroll-up.
 				if (get_screen_position(cursor_position).line == terminal.lines) move_screen(screen_offset+1);
-				// The CUD sequence moves the active position downward without altering the column position.
-				// The number of lines moved is determined by the parameter (default: 1)
-				move_cursor(cursor_position.line + stream_element.get_numeric_parameter(0, 1), cursor_position.column);
+				move_cursor(cursor_position.line + 1, cursor_position.column);
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.REVERSE_INDEX:
-				if (get_screen_position(cursor_position).line == 1) move_screen(screen_offset-1);
 				// Moves the active position upward without altering the column position.
-				// The number of lines moved is determined by the parameter (default: 1)
-				move_cursor(cursor_position.line - stream_element.get_numeric_parameter(0, 1), cursor_position.column);
+				if (get_screen_position(cursor_position).line == 1) move_screen(screen_offset-1);
+				move_cursor(cursor_position.line - 1, cursor_position.column);
 				break;
 
-
 			case TerminalStream.StreamElement.ControlSequenceType.NEXT_LINE:
-				move_screen(screen_offset+1);
-				move_cursor(cursor_position.line + stream_element.get_numeric_parameter(0,1), 0);
+				if (get_screen_position(cursor_position).line == terminal.lines) move_screen(screen_offset+1);
+				move_cursor(cursor_position.line + 1, 0);
 				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.SAVE_CURSOR:
@@ -656,6 +655,19 @@ public class TerminalOutput : Gtk.TextBuffer {
 
 
 			/* Control sequences for VT220 and above */
+
+			case TerminalStream.StreamElement.ControlSequenceType.LINE_POSITION_RELATIVE:
+				if (get_screen_position(cursor_position).line == terminal.lines) move_screen(screen_offset+1);
+				move_cursor(cursor_position.line + stream_element.get_numeric_parameter(0, 1), cursor_position.column);
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.FORWARD_INDEX:
+				move_cursor(cursor_position.line, cursor_position.column + 1);
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.BACK_INDEX:
+				move_cursor(cursor_position.line, cursor_position.column - 1);
+				break;
 
 			case TerminalStream.StreamElement.ControlSequenceType.INSERT_CHARACTERS:
 				var restore = cursor_position;
@@ -1269,8 +1281,8 @@ public class TerminalOutput : Gtk.TextBuffer {
 			} while (end.get_line_offset() < end_offset);
 		}
 		else {
-			this.delete(ref start, ref end);
 			var fill = string.nfill(end.get_offset()-start.get_offset(), ' ');
+			this.delete(ref start, ref end);
 			insert(ref start, fill, fill.length);
 		}
 

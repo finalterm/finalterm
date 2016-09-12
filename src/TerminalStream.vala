@@ -256,6 +256,7 @@ public class TerminalStream : Object {
 			INVOKE_G1_CHARACTER_SET_AS_GR,
 			SINGLE_SHIFT_G2_CHARACTER_SET,
 			SINGLE_SHIFT_G3_CHARACTER_SET,
+			IDENTIFY_TERMINAL,
 
 			INDEX,
 			NEXT_LINE,
@@ -462,6 +463,7 @@ public class TerminalStream : Object {
 			add_esc_sequence_pattern(ControlSequenceType.INVOKE_G3_CHARACTER_SET_AS_GR, "|");
 			add_esc_sequence_pattern(ControlSequenceType.INVOKE_G2_CHARACTER_SET_AS_GR, "}");
 			add_esc_sequence_pattern(ControlSequenceType.INVOKE_G1_CHARACTER_SET_AS_GR, "~");
+			add_esc_sequence_pattern(ControlSequenceType.IDENTIFY_TERMINAL, "Z");
 
 			// xterm implements no APC functions
 			// See http://invisible-island.net/xterm/ctlseqs/ctlseqs.html
@@ -517,9 +519,9 @@ public class TerminalStream : Object {
 			add_csi_sequence_pattern(ControlSequenceType.DEC_PRIVATE_MODE_RESET, "l", "?");
 			add_csi_sequence_pattern(ControlSequenceType.CHARACTER_ATTRIBUTES, "m");
 			add_csi_sequence_pattern(ControlSequenceType.SET_OR_RESET_RESOURCE_VALUES, "m", ">");
-			add_csi_sequence_pattern(ControlSequenceType.DEVICE_STATUS_REPORT, "n");
 			add_csi_sequence_pattern(ControlSequenceType.DISABLE_MODIFIERS, "n", ">");
 			add_csi_sequence_pattern(ControlSequenceType.DEVICE_STATUS_REPORT_DEC, "n", "?");
+			add_csi_sequence_pattern(ControlSequenceType.DEVICE_STATUS_REPORT, "n");
 			add_csi_sequence_pattern(ControlSequenceType.SET_RESOURCE_VALUE_POINTER_MODE, "p", ">");
 			// TODO: This is a hack to match the EXACT sequence CSI + "!p"
 			add_csi_sequence_pattern(ControlSequenceType.SOFT_TERMINAL_RESET, "!p");
