@@ -618,6 +618,42 @@ public class TerminalOutput : Gtk.TextBuffer {
 				terminal.send_text("\033[?6c");
 				break;
 
+			case TerminalStream.StreamElement.ControlSequenceType.FULL_RESET:
+				// Resets the terminal to its initial state.
+				current_attributes.reset();
+				encoder.reset();
+				terminal_modes = 0;
+				tab_stops.clear();
+				cursor_save = null;
+				cursor_position = CursorPosition () {
+					line = 0,
+					column = 0
+				};
+				screen_offset = 0;
+				set_text("");
+
+				cursor_position_changed(cursor_position);
+				break;
+
+			case TerminalStream.StreamElement.ControlSequenceType.DEC_SCREEN_ALIGNMENT_TEST:
+				// Fill screen with uppercase E's.
+				var lines = new string[terminal.lines];
+				for (var i = 0; i < terminal.lines; i++)
+					lines[i] = string.nfill(terminal.columns - 1, 'E');
+
+				var text = string.joinv("\n", lines);
+
+				move_cursor_screen(1, 1);
+				begin_user_action();
+				Gtk.TextIter iter, end;
+				get_iter_at_line(out iter, cursor_position.line);
+				get_iter_at_line(out end, cursor_position.line + terminal.lines);
+				this.delete(ref iter, ref end);
+				insert(ref iter, text, text.length);
+				end_user_action();
+
+				break;
+
 
 			/* Control sequences for VT220 and above */
 
@@ -1059,7 +1095,7 @@ public class TerminalOutput : Gtk.TextBuffer {
 
 			// Printed text should overwrite previous content on the line
 			if (overwrite && iter.get_chars_in_line()-1 > 0) {
-				iter.set_line_offset(int.min (iter.get_line_offset() + encoded.char_count(), iter.get_chars_in_line()));
+				iter.set_line_offset(int.min (iter.get_line_offset() + encoded.char_count(), iter.get_chars_in_line() - 1));
 				if (iter.get_offset() > start.get_offset())
 					this.delete(ref start, ref iter);
 			}

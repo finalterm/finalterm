@@ -53,7 +53,7 @@ public class CharacterAttributes : Object {
 			 invisible == attributes.invisible);
 	}
 
-	private void reset() {
+	public void reset() {
 		// Default attributes
 		foreground_color = -1;
 		background_color = -1;

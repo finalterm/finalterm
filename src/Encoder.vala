@@ -50,19 +50,29 @@ public class Encoder : Object {
 	public int gl = 0;
 	public int single_shift = -1;
 
-	private void copy_method(Encoder encoder) {
+	private void copy_method (Encoder encoder) {
 		gl = encoder.gl;
 		single_shift = encoder.single_shift;
 		charsets = encoder.charsets;
 	}
 
-	public Encoder.copy(Encoder encoder) {
+	public Encoder.copy (Encoder encoder) {
 		copy_method(encoder);
+	}
+
+	public void reset () {
+		gl = 0;
+		single_shift = -1;
+		charsets = {
+			Charset.UNITED_STATES,
+			Charset.UNITED_STATES,
+			Charset.UNITED_STATES,
+			Charset.UNITED_STATES
+		};
 	}
 
 	/**
 	 *  TODO:
-	 *   Portuguese is unimplemented.
 	 *   DEC Supplementary Graphics and DEC Supplementary are the same?
 	 */
 	public bool setCharset (int g, string selector) {
