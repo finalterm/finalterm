@@ -4,9 +4,9 @@
 
 I have made the decision to pickup development on Final Term. Step one was to remove the dependencies on Clutter and Mx and move to a full Gtk setup. That has been done, and while it has given finalterm a large performance boost, is sure to have introduced new bugs.
 
-Step two is to fully implment vt100 elmulation. This is the main focus of current development.
+Step two is to implment full vt102 elmulation. This is the main focus of current development.
 
-You can normally find me at #finalterm on chat.freenode.net.
+If you have any questions feel free to ask on  [Gitter](https://gitter.im/finalterm-reborn/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge).
 
 # About Final Term
 
