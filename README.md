@@ -29,6 +29,19 @@ Final Term is written in [Vala](https://live.gnome.org/Vala) and built on top of
 
 Additionally, it requires [intltool](http://freedesktop.org/wiki/Software/intltool/) for localization string extraction.
 
+To install the dependencies on ubuntu run the following commands:
+
+```
+# Build tools
+sudo apt-get install intltool cmake make valac
+
+# Required
+sudo apt-get install libgtk-3-dev libkeybinder-3.0-dev libgee-0.8-dev libjson-glib-dev
+
+#Optional
+sudo apt-get install libunity-dev libnotify-dev
+```
+
 To install Final Term, execute these shell commands:
 
 ```sh
@@ -55,7 +68,7 @@ Final Term's application icon is a modified version of the terminal icon from th
 
 # License
 Copyright © 2013–2014 Philipp Emanuel Weidmann (pew@worldwidemann.com)  
-Copyright © 2015 RedHatter (timothy@idioticdev.com)
+Copyright © 2015-2016 RedHatter (timothy@idioticdev.com)
 
 Final Term is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 
