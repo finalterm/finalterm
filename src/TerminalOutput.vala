@@ -40,6 +40,7 @@ public class TerminalOutput : Gtk.TextBuffer {
 	public enum TerminalMode {
 		CURSOR,  // Alternative sequences for array keys
 		KBDLOCK, // Disable keyboard
+		COLUMN,  // Selects the number of columns in a display line, 80 or 132.
 		INSERT,  // Shift characters to the right when inserting
 		ECHO,    // Print characters written to tty
 		CRLF,    // LF infers CR
@@ -259,6 +260,13 @@ public class TerminalOutput : Gtk.TextBuffer {
 							terminal_modes |= TerminalMode.CURSOR;
 
 						break;
+					case 3:
+						terminal_modes |= TerminalMode.COLUMN;
+						terminal.columns = 132;
+						terminal.lines = 24;
+						move_screen(get_line_count());
+						move_cursor_screen(1, 1);
+						break;
 					default:
 						print_interpretation_status(stream_element, InterpretationStatus.UNSUPPORTED);
 						break;
@@ -272,6 +280,13 @@ public class TerminalOutput : Gtk.TextBuffer {
 					case 1:
 						// Normal Cursor Keys
 						terminal_modes &= ~TerminalMode.CURSOR;
+						break;
+					case 3:
+						terminal_modes &= ~TerminalMode.COLUMN;
+						terminal.columns = 80;
+						terminal.lines = 24;
+						move_screen(get_line_count());
+						move_cursor_screen(1, 1);
 						break;
 					default:
 						print_interpretation_status(stream_element, InterpretationStatus.UNSUPPORTED);
@@ -511,9 +526,8 @@ public class TerminalOutput : Gtk.TextBuffer {
 					 * different, but this recipe gives better results.
 					 */
 					int visible_lines = get_line_count() - screen_offset;
-					move_screen(screen_offset+visible_lines);
+					move_screen(screen_offset + visible_lines - 1);
 					move_cursor(cursor_position.line + visible_lines, cursor_position.column);
-
 					break;
 
 				case 3:

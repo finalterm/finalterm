@@ -37,6 +37,18 @@ public class TerminalView : Fixed {
 	public TerminalView(Terminal terminal) {
 		this.terminal = terminal;
 
+		terminal.notify.connect((p) => {
+			if (p.name != "lines" && p.name != "columns")
+				return;
+
+			// Force new size
+			int width, height;
+			parent.get_preferred_width(null, out width);
+			parent.get_preferred_height(null, out height);
+			parent.set_size_request(width, height);
+			parent.queue_resize();
+		});
+
 		var box = new Box (Orientation.VERTICAL, 5);
 		put (box, 0, 0);
 
@@ -54,6 +66,7 @@ public class TerminalView : Fixed {
 
 		progress_label = new Label("");
 		progress_label.get_style_context ().add_class ("progress-label");
+		progress_label.no_show_all = true;
 		box.add(progress_label);
 		progress_bar = new ProgressBar();
 		progress_bar.no_show_all = true;
