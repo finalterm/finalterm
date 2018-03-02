@@ -1,12 +1,8 @@
-# Final Term is back!
+**I am no longer working on Final Term at this time. The port is complete and it is "usable" but full vt102 emulation hasn't been implemented.**
 
-[![Join the chat at https://gitter.im/finalterm-reborn/Lobby](https://badges.gitter.im/finalterm-reborn/Lobby.svg)](https://gitter.im/finalterm-reborn/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+# The Rewrite
 
-I have made the decision to pickup development on Final Term. Step one was to remove the dependencies on Clutter and Mx and move to a full Gtk setup. That has been done, and while it has given finalterm a large performance boost, is sure to have introduced new bugs.
-
-Step two is to implment full vt102 elmulation. This is the main focus of current development.
-
-If you have any questions feel free to ask on  [Gitter](https://gitter.im/finalterm-reborn/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge).
+The original Final Term depended on Clutter and Mx which are no longer viable. This forks main focus was to port Final Term to GTK+ 3.0 giving it a large performance boost. This porting is fully complete. Some aditinal vt102 emulation has been implemented but there is still a long way to go.
 
 # About Final Term
 
