@@ -117,7 +117,7 @@ public class TerminalOutput : Gtk.TextBuffer {
 
 		tab_stops = new Gee.TreeSet<int>();
 
-		tags_by_text_menu = new Gee.HashMap<Gtk.TextTag,TextMenu>();
+		tags_by_text_menu = new Gee.HashMap<TextMenu, Gtk.TextTag>();
 		foreach (var text_menu in FinalTerm.text_menus_by_pattern.values)
 			tags_by_text_menu[text_menu] = create_tag(null);
 

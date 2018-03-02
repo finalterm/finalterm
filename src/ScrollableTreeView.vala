@@ -47,7 +47,7 @@ public class ScrollableTreeView<T> : ScrolledWindow {
 			var column = list.get_column (0);
 
 			// Getting dimensions from TreeViewColumn
-			column.cell_get_size(rectangle, out offset_x, out offset_y, 
+			column.cell_get_size(rectangle, out offset_x, out offset_y,
 				out cell_width, out _cell_height);
 
 			return _cell_height;
@@ -85,7 +85,7 @@ public class ScrollableTreeView<T> : ScrolledWindow {
 		items.item_removed.connect((index, item) => {
 			TreeIter iter;
 			model.get_iter (out iter, new TreePath.from_indices (index, -1));
-			model.remove (iter);
+			model.remove (ref iter);
 		});
 
 		items.item_modified.connect ((index, item) => {
