@@ -1,7 +1,7 @@
 [Desktop Entry]
 Name=Final Term
-_GenericName=Terminal
-_Comment=Don't just use your system — command it!
+GenericName=Terminal
+Comment=Don't just use your system — command it!
 Exec=finalterm
 Icon=final-term
 Terminal=false
@@ -10,5 +10,5 @@ Categories=GTK;Utility;TerminalEmulator;System;
 Actions=NewWindow;
 
 [Desktop Action NewWindow]
-_Name=Open a New Window
+Name=Open a New Window
 Exec=finalterm

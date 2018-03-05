@@ -25,13 +25,13 @@ Final Term is written in [Vala](https://live.gnome.org/Vala) and built on top of
 * [libnotify](https://developer.gnome.org/libnotify/) _Optional_, for desktop notifications support
 * [libunity](https://launchpad.net/libunity) _Optional_, for Unity launcher integration (progress bars)
 
-Additionally, it requires [intltool](http://freedesktop.org/wiki/Software/intltool/) for localization string extraction.
+Additionally, it requires [gettext](https://www.gnu.org/software/gettext/) for localization string extraction.
 
 To install the dependencies on ubuntu run the following commands:
 
 ```
 # Build tools
-sudo apt-get install intltool cmake make valac
+sudo apt-get install gettext meson ninja valac
 
 # Required
 sudo apt-get install libgtk-3-dev libkeybinder-3.0-dev libgee-0.8-dev libjson-glib-dev
@@ -45,11 +45,9 @@ To install Final Term, execute these shell commands:
 ```sh
 git clone https://github.com/RedHatter/finalterm-reborn.git
 cd finalterm-reborn/
-mkdir build
-cd build/
-cmake ..
-make
-sudo make install
+meson build
+ninja -C build
+ninja -C build install
 ```
 
 If you want to install to a custom directory your `XDG_DATA_DIRS` environment variable has to point to the prefix with the file `glib-2.0/schemas/gschemas.compiled` in it.

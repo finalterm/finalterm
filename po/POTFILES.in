@@ -1,0 +1,32 @@
+# List of source files containing translatable strings.
+# Please keep this file sorted alphabetically.
+data/finalterm.desktop.in
+data/org.gnome.finalterm.gschema.xml
+data/TextMenus/dirname.ftmenu
+data/TextMenus/filename.ftmenu
+data/TextMenus/ip_address.ftmenu
+data/TextMenus/pid.ftmenu
+data/TextMenus/url.ftmenu
+src/Autocompletion.vala
+src/CharacterAttributes.vala
+src/ColorScheme.vala
+src/Command.vala
+src/Encoder.vala
+src/FinalTerm.vala
+src/KeyBindings.vala
+src/Metrics.vala
+src/NestingContainer.vala
+src/NotifyingList.vala
+src/ScrollableTreeView.vala
+src/Settings.vala
+src/SettingsWindow.vala
+src/StatusBar.vala
+src/Terminal.vala
+src/TerminalOutput.vala
+src/TerminalStream.vala
+src/TerminalView.vala
+src/TerminalWidget.vala
+src/TextMenu.vala
+src/TextView.vala
+src/Theme.vala
+src/Utilities.vala

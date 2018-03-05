@@ -1,0 +1,2 @@
+option('libnotify', type: 'boolean', value: false, description: 'Enable notifications.')
+option('libunity', type: 'boolean', value: false, description: 'Enable Unity integration.')
