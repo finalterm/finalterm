@@ -388,19 +388,6 @@ public class NestingContainer : Gtk.Bin, NestingContainerChild {
 						new ThemedIcon.with_default_fallbacks("window-close-symbolic"),
 						Gtk.IconSize.MENU));
 
-			var css_provider = new Gtk.CssProvider();
-			css_provider.load_from_data(
-					".button {\n" +
-					"-GtkButton-default-border: 0px;\n" +
-					"-GtkButton-default-outside-border: 0px;\n" +
-					"-GtkButton-inner-border: 0px;\n" +
-					"-GtkWidget-focus-line-width: 0px;\n" +
-					"-GtkWidget-focus-padding: 0px;\n" +
-					"padding: 0px;\n" +
-					"}", -1);
-			close_button.get_style_context().add_provider(css_provider,
-					Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
-
 			close_button.clicked.connect(() => {
 				close_button_clicked();
 			});

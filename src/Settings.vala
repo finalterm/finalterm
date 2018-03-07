@@ -257,7 +257,8 @@ public class Settings : Object {
 
 		var css = @"
 .cursor {
-	font: $terminal_font_name;
+	font-family: '$(terminal_font.get_family())';
+	font-size: $(terminal_font.get_size()/1000)pt;
 	background-color: $from;
 	animation-name: blink;
 	animation-duration: $(theme.cursor_blinking_interval)ms;
@@ -271,15 +272,15 @@ public class Settings : Object {
 	to { background-color: $to; }
 }
 
-TerminalWidget
-{
+TerminalWidget {
 	background-color: $background_color;
 }
 
 GtkTextView {
 	background-color: transparent;
 	color: $(foreground_color.to_string ());
-	font: $terminal_font_name;
+	font-family: '$(terminal_font.get_family())';
+	font-size: $(terminal_font.get_size()/1000)pt;
 	margin-left: $(theme.margin_left)px;
 	margin-right: $(theme.margin_right)px;
 	padding: 0;
@@ -290,7 +291,11 @@ GtkTextView:selected {
 	color: $background_color;
 }
 ";
+	try {
 		style.load_from_data (css, css.length);
+	} catch (Error e) {
+		error(_("Failed to load style: %s"), e.message);
+	}
 Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),
 			style, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION);
 }
