@@ -43,6 +43,17 @@ i18n.merge_file(
   install_dir: join_paths(datadir, 'applications'),
 )
 
+# Resources
+resource_data = files(
+  'ui/preferences.ui',
+)
+
+resources = gnome.compile_resources(
+  'resources',
+  'finalterm.gresource.xml',
+  dependencies: resource_data,
+)
+
 # GSettings schemas
 compiled = gnome.compile_schemas()
 install_data('org.gnome.finalterm.gschema.xml',

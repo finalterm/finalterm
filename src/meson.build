@@ -53,7 +53,7 @@ if libunity_enabled
   finalterm_vala_args += [ '-D', 'HAS_UNITY' ]
 endif
 
-executable('finalterm', finalterm_sources,
+executable('finalterm', finalterm_sources + resources,
   include_directories: [ config_h_dir ],
   c_args: finalterm_c_args,
   vala_args: finalterm_vala_args,

@@ -21,162 +21,107 @@
  * along with Final Term.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+[GtkTemplate (ui = "/org/gnome/finalterm/ui/preferences.ui")]
 public class SettingsWindow : Gtk.Dialog {
 
-	public SettingsWindow() {
-		title = _("Preferences");
+	[GtkChild (name = "columns")]
+	private Gtk.SpinButton d_columns;
 
-		add_buttons(Gtk.Stock.CLOSE, Gtk.ResponseType.CANCEL);
+	[GtkChild (name = "rows")]
+	private Gtk.SpinButton d_rows;
 
-		var dimensions_columns = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 6);
-		var dimensions_rows = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 6);
-		var rows = new Gtk.SpinButton.with_range(10, 200, 1);
-		var columns = new Gtk.SpinButton.with_range(10, 300, 1);
+	[GtkChild (name = "left")]
+	private Gtk.Entry d_left;
 
-		rows.value = Settings.get_default().terminal_lines;
-		rows.value_changed.connect(() => {
-			Settings.get_default().terminal_lines = (int)rows.value;
+	[GtkChild (name = "middle" )]
+	private Gtk.Entry d_middle;
+
+	[GtkChild (name = "right")]
+	private Gtk.Entry d_right;
+
+	[GtkChild (name = "terminal_font" )]
+	private Gtk.FontButton d_terminal_font;
+
+	[GtkChild (name = "label_font")]
+	private Gtk.FontButton d_label_font;
+
+	[GtkChild (name = "dark_look" )]
+	private Gtk.Switch d_dark_look;
+
+	[GtkChild (name = "color_scheme")]
+	private Gtk.ComboBoxText d_color_scheme;
+
+	[GtkChild (name = "theme" )]
+	private Gtk.ComboBoxText d_theme;
+
+	[GtkChild (name = "opacity")]
+	private Gtk.Scale d_opacity;
+
+
+	construct {
+		d_rows.value = Settings.get_default().terminal_lines;
+		d_rows.value_changed.connect(() => {
+			Settings.get_default().terminal_lines = (int)d_rows.value;
 		});
 
-		columns.value = Settings.get_default().terminal_columns;
-		columns.value_changed.connect(() => {
-			Settings.get_default().terminal_columns = (int)columns.value;
+		d_columns.value = Settings.get_default().terminal_columns;
+		d_columns.value_changed.connect(() => {
+			Settings.get_default().terminal_columns = (int)d_columns.value;
 		});
 
-		dimensions_columns.pack_start(columns, false);
-		dimensions_columns.pack_start(new Gtk.Label(_("columns")), false);
-		dimensions_rows.pack_start(rows, false);
-		dimensions_rows.pack_start(new Gtk.Label(_("rows")), false);
-
-		var status_bar_left = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 6);
-		var left = new Gtk.Entry ();
-		left.text = Settings.get_default().status_bar_left;
-		left.changed.connect(() => {
-			Settings.get_default().status_bar_left = left.text;
+		d_left.text = Settings.get_default().status_bar_left;
+		d_left.changed.connect(() => {
+			Settings.get_default().status_bar_left = d_left.text;
 		});
-		status_bar_left.pack_start(left, false);
-		status_bar_left.pack_start(new Gtk.Label(_("Left")), false);
 
-		var status_bar_middle = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 6);
-		var middle = new Gtk.Entry ();
-		middle.text = Settings.get_default().status_bar_middle;
-		middle.changed.connect(() => {
-			Settings.get_default().status_bar_middle = middle.text;
+		d_middle.text = Settings.get_default().status_bar_middle;
+		d_middle.changed.connect(() => {
+			Settings.get_default().status_bar_middle = d_middle.text;
 		});
-		status_bar_middle.pack_start(middle, false);
-		status_bar_middle.pack_start(new Gtk.Label(_("Middle")), false);
 
-		var status_bar_right = new Gtk.Box(Gtk.Orientation.HORIZONTAL, 6);
-		var right = new Gtk.Entry ();
-		right.text = Settings.get_default().status_bar_right;
-		right.changed.connect(() => {
-			Settings.get_default().status_bar_right = right.text;
+		d_right.text = Settings.get_default().status_bar_right;
+		d_right.changed.connect(() => {
+			Settings.get_default().status_bar_right = d_right.text;
 		});
-		status_bar_right.pack_start(right, false);
-		status_bar_right.pack_start(new Gtk.Label(_("Right")), false);
 
-
-		var terminal_font = new Gtk.FontButton();
-		terminal_font.use_font = true;
 		// Restrict selection to monospaced fonts
-		terminal_font.set_filter_func((family, face) => {
+		d_terminal_font.set_filter_func((family, face) => {
 			return family.is_monospace();
 		});
-		terminal_font.font_name = Settings.get_default().terminal_font_name;
-		terminal_font.font_set.connect(() => {
-			Settings.get_default().terminal_font_name = terminal_font.font_name;
+		d_terminal_font.font_name = Settings.get_default().terminal_font_name;
+		d_terminal_font.font_set.connect(() => {
+			Settings.get_default().terminal_font_name = d_terminal_font.font_name;
 		});
 
-		var label_font = new Gtk.FontButton();
-		label_font.use_font = true;
-		label_font.font_name = Settings.get_default().label_font_name;
-		label_font.font_set.connect(() => {
-			Settings.get_default().label_font_name = label_font.font_name;
+		d_label_font.font_name = Settings.get_default().label_font_name;
+		d_label_font.font_set.connect(() => {
+			Settings.get_default().label_font_name = d_label_font.font_name;
 		});
 
-		var dark_look = new Gtk.Switch();
-		dark_look.active = Settings.get_default().dark;
-		dark_look.halign = Gtk.Align.START;
-		dark_look.notify["active"].connect(() => {
-			Settings.get_default().dark = dark_look.active;
+		d_dark_look.active = Settings.get_default().dark;
+		d_dark_look.notify["active"].connect(() => {
+			Settings.get_default().dark = d_dark_look.active;
 		});
 
-		var color_scheme = new Gtk.ComboBoxText();
 		foreach (var color_scheme_name in FinalTerm.color_schemes.keys) {
-			color_scheme.append(color_scheme_name, color_scheme_name);
+			d_color_scheme.append(color_scheme_name, color_scheme_name);
 		}
-		color_scheme.active_id = Settings.get_default().color_scheme_name;
-		color_scheme.changed.connect(() => {
-			Settings.get_default().color_scheme_name = color_scheme.active_id;
+		d_color_scheme.active_id = Settings.get_default().color_scheme_name;
+		d_color_scheme.changed.connect(() => {
+			Settings.get_default().color_scheme_name = d_color_scheme.active_id;
 		});
 
-		var theme = new Gtk.ComboBoxText();
 		foreach (var theme_name in FinalTerm.themes.keys) {
-			theme.append(theme_name, theme_name);
+			d_theme.append(theme_name, theme_name);
 		}
-		theme.active_id = Settings.get_default().theme_name;
-		theme.changed.connect(() => {
-			Settings.get_default().theme_name = theme.active_id;
+		d_theme.active_id = Settings.get_default().theme_name;
+		d_theme.changed.connect(() => {
+			Settings.get_default().theme_name = d_theme.active_id;
 		});
 
-		var opacity = new Gtk.Scale.with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 1);
-		opacity.set_value(Settings.get_default().opacity * 100.0);
-		opacity.value_changed.connect(() => {
-			Settings.get_default().opacity = opacity.get_value() / 100.0;
+		d_opacity.set_value(Settings.get_default().opacity * 100.0);
+		d_opacity.value_changed.connect(() => {
+			Settings.get_default().opacity = d_opacity.get_value() / 100.0;
 		});
-
-		var grid = new Gtk.Grid();
-		grid.column_homogeneous = true;
-		grid.column_spacing = 12;
-		grid.row_spacing = 6;
-		grid.margin = 12;
-
-		grid.attach(create_header(_("General")), 0, 0, 1, 1);
-
-		grid.attach(create_label(_("Default dimensions:")), 0, 1, 1, 1);
-		grid.attach(dimensions_columns, 1, 1, 1, 1);
-		grid.attach(dimensions_rows, 1, 2, 1, 1);
-
-		grid.attach(create_label(_("Status Bar:")), 0, 3, 1, 1);
-		grid.attach(status_bar_left, 1, 3, 1, 1);
-		grid.attach(status_bar_middle, 1, 4, 1, 1);
-		grid.attach(status_bar_right, 1, 5, 1, 1);
-
-		grid.attach(create_header(_("Appearance")), 0, 6, 1, 1);
-
-		grid.attach(create_label(_("Terminal font:")), 0, 7, 1, 1);
-		grid.attach(terminal_font, 1, 7, 1, 1);
-
-		grid.attach(create_label(_("Label font:")), 0, 8, 1, 1);
-		grid.attach(label_font, 1, 8, 1, 1);
-
-		grid.attach(create_label(_("Dark look:")), 0, 9, 1, 1);
-		grid.attach(dark_look, 1, 9, 1, 1);
-
-		grid.attach(create_label(_("Color scheme:")), 0, 10, 1, 1);
-		grid.attach(color_scheme, 1, 10, 1, 1);
-
-		grid.attach(create_label(_("Theme:")), 0, 11, 1, 1);
-		grid.attach(theme, 1, 11, 1, 1);
-
-		// TODO: This looks ugly (alignment)
-		grid.attach(create_label(_("Opacity:")), 0, 12, 1, 1);
-		grid.attach(opacity, 1, 12, 1, 1);
-
-		get_content_area().add(grid);
 	}
-
-	private Gtk.Label create_header(string title) {
-		var label = new Gtk.Label("<span weight='bold'>" + title + "</span>");
-		label.use_markup = true;
-		label.halign = Gtk.Align.START;
-		return label;
-	}
-
-	private Gtk.Label create_label(string text) {
-		var label = new Gtk.Label(text);
-		label.halign = Gtk.Align.END;
-		return label;
-	}
-
 }
