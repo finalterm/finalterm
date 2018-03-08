@@ -56,6 +56,10 @@ public class FinalTerm : Gtk.Application {
 		{ "quit", quit_action }
 	};
 
+	public FinalTerm() {
+		Object(application_id: "org.gnome.finalterm");
+	}
+
 	protected override void startup() {
 		base.startup();
 
@@ -123,7 +127,7 @@ public class FinalTerm : Gtk.Application {
 		if (File.new_for_path(autocompletion_filename).query_exists())
 			autocompletion.load_entries_from_file(autocompletion_filename);
 
-		app_menu = create_application_menu();
+		add_action_entries(action_entries, this);
 
 #if HAS_UNITY
 		launcher = Unity.LauncherEntry.get_for_desktop_id("finalterm.desktop");
@@ -203,24 +207,6 @@ public class FinalTerm : Gtk.Application {
 		//       results in a segmentation fault
 		on_settings_changed(null);
 		Settings.get_default().changed.connect(on_settings_changed);
-	}
-
-	private Menu create_application_menu() {
-		add_action_entries(action_entries, this);
-
-		var menu = new Menu();
-		Menu menu_section;
-
-		menu_section = new Menu();
-		menu_section.append(_("_Preferences"), "app.settings");
-		menu.append_section(null, menu_section);
-
-		menu_section = new Menu();
-		menu_section.append(_("_About Final Term"), "app.about");
-		menu_section.append(_("_Quit"), "app.quit");
-		menu.append_section(null, menu_section);
-
-		return menu;
 	}
 
 	private void settings_action() {

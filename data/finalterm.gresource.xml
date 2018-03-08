@@ -1,5 +1,6 @@
 <gresources>
 	<gresource prefix="/org/gnome/finalterm">
+		<file alias="gtk/menus.ui">ui/menu.ui</file>
 		<file>ui/preferences.ui</file>
 	</gresource>
 </gresources>

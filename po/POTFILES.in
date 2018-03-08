@@ -7,6 +7,7 @@ data/TextMenus/filename.ftmenu
 data/TextMenus/ip_address.ftmenu
 data/TextMenus/pid.ftmenu
 data/TextMenus/url.ftmenu
+data/ui/menu.ui
 data/ui/preferences.ui
 src/Autocompletion.vala
 src/CharacterAttributes.vala

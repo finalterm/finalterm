@@ -45,6 +45,7 @@ i18n.merge_file(
 
 # Resources
 resource_data = files(
+  'ui/menu.ui',
   'ui/preferences.ui',
 )
 
