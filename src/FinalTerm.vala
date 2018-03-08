@@ -43,10 +43,8 @@ public class FinalTerm : Gtk.Application {
 	public static Unity.LauncherEntry launcher;
 #endif
 
-	private static bool show_version = false;
-
 	private const OptionEntry[] options = {
-		{ "version", 'v', 0, OptionArg.NONE, ref show_version, N_("Display version number"), null },
+		{ "version", 'v', 0, OptionArg.NONE, null, N_("Display version number"), null },
 		{ null }
 	};
 
@@ -58,6 +56,17 @@ public class FinalTerm : Gtk.Application {
 
 	public FinalTerm() {
 		Object(application_id: "org.gnome.finalterm");
+
+		add_main_option_entries(options);
+	}
+
+	protected override int handle_local_options(VariantDict options) {
+		if (options.contains("version")) {
+			stdout.printf("Final Term %s\n", Config.VERSION);
+			return Posix.EXIT_SUCCESS;
+		}
+
+		return -1;
 	}
 
 	protected override void startup() {
@@ -475,21 +484,20 @@ public class FinalTerm : Gtk.Application {
 		}
 	}
 
+	protected override void shutdown() {
+		var data_dir = File.new_for_path(Environment.get_user_data_dir() + "/finalterm");
+		string autocompletion_filename = data_dir.get_path() + "/commands.ftcompletion";
+		autocompletion.save_entries_to_file(autocompletion_filename);
+
+		base.shutdown();
+	}
+
 	public static int main(string[] args) {
 		Intl.textdomain(Config.GETTEXT_PACKAGE);
 		Intl.bindtextdomain(Config.GETTEXT_PACKAGE, Config.LOCALE_DIR);
 
-		if (show_version) {
-			print("Final Term %s\n", Config.VERSION);
-			return 0;
-		}
-
 		application = new FinalTerm();
 		var result = application.run(args);
-
-		var data_dir = File.new_for_path(Environment.get_user_data_dir() + "/finalterm");
-		string autocompletion_filename = data_dir.get_path() + "/commands.ftcompletion";
-		autocompletion.save_entries_to_file(autocompletion_filename);
 
 		return result;
 	}
