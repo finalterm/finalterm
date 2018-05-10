@@ -41,6 +41,7 @@ finalterm_deps = [
   posix,
   linux,
   libutil,
+  libm,
 ]
 
 if libnotify_enabled
