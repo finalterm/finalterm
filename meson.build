@@ -30,14 +30,10 @@ libutil = cc.find_library('util')
 libm = cc.find_library('m')
 
 libnotify_enabled = get_option('libnotify')
-if libnotify_enabled
-  libnotify = dependency('libnotify')
-endif
+libnotify = dependency('libnotify', required: libnotify_enabled)
 
 libunity_enabled = get_option('libunity')
-if libunity_enabled
-  libunity = dependency('libunity')
-endif
+libunity = dependency('libunity', required: libunity_enabled)
 
 # Configuration
 conf = configuration_data()
