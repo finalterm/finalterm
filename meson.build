@@ -33,7 +33,7 @@ libnotify_enabled = get_option('libnotify')
 libnotify = dependency('libnotify', required: libnotify_enabled)
 
 libunity_enabled = get_option('libunity')
-libunity = dependency('libunity', required: libunity_enabled)
+libunity = dependency('unity', required: libunity_enabled)
 
 # Configuration
 conf = configuration_data()
