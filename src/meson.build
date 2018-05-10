@@ -41,9 +41,8 @@ finalterm_deps = [
   posix,
   linux,
   libutil,
+  dep_m,
 ]
-
-dep_m = cc.find_library('m')
 
 if libnotify_enabled
   finalterm_deps += [ libnotify ]
