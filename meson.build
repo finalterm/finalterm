@@ -27,6 +27,7 @@ json = dependency('json-glib-1.0')
 posix = valac.find_library('posix')
 linux = valac.find_library('linux')
 libutil = cc.find_library('util')
+libm = cc.find_library('m')
 
 libnotify_enabled = get_option('libnotify')
 if libnotify_enabled
