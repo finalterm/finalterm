@@ -58,6 +58,6 @@ executable('finalterm', finalterm_sources + resources,
   include_directories: [ config_h_dir ],
   c_args: finalterm_c_args,
   vala_args: finalterm_vala_args,
-  dependencies: [finalterm_deps, dep_m],
+  dependencies: finalterm_deps,
   install: true,
 )
