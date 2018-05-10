@@ -43,6 +43,8 @@ finalterm_deps = [
   libutil,
 ]
 
+dep_m = cc.find_library('m')
+
 if libnotify_enabled
   finalterm_deps += [ libnotify ]
   finalterm_vala_args += [ '-D', 'HAS_NOTIFY' ]
@@ -57,6 +59,6 @@ executable('finalterm', finalterm_sources + resources,
   include_directories: [ config_h_dir ],
   c_args: finalterm_c_args,
   vala_args: finalterm_vala_args,
-  dependencies: finalterm_deps,
+  dependencies: [finalterm_deps, dep_m],
   install: true,
 )
